@@ -131,15 +131,24 @@ return colores[n%10];
 // ================= CONVERTIR WKT A COORDS =================
 
 function wktToLatLng(wkt){
-var coords=wkt.replace("POLYGON ((","")
-.replace("))","")
-.split(",");
 
-var latlngs=[];
+wkt = wkt.replace("POLYGON ((","")
+         .replace("POLYGON((","")
+         .replace("))","")
+         .trim();
+
+var coords = wkt.split(",");
+
+var latlngs = [];
 
 coords.forEach(c=>{
-var parts=c.trim().split(" ");
-latlngs.push([parseFloat(parts[1]),parseFloat(parts[0])]);
+var parts = c.trim().split(/\s+/);
+if(parts.length>=2){
+latlngs.push([
+parseFloat(parts[1]),
+parseFloat(parts[0])
+]);
+}
 });
 
 return latlngs;
@@ -148,29 +157,27 @@ return latlngs;
 
 // ================= DIBUJAR DISTRITOS =================
 
-function dibujarDistritos(){
-
-capaDistritos.clearLayers();
+var maxPob = Math.max(...datosDistritos.map(d=>d.poblacion));
 
 datosDistritos.forEach(d=>{
 
-var latlngs=wktToLatLng(d.WKT);
+if(!d.WKT) return;
 
-var intensidad=d.poblacion/1000;
+var latlngs = wktToLatLng(d.WKT);
+
+var intensidad = d.poblacion / maxPob;
 
 L.polygon(latlngs,{
 color:"#000",
 weight:1,
 fillColor:"#ff0000",
-fillOpacity:Math.min(intensidad,0.8)
+fillOpacity:0.2 + intensidad*0.6
 })
-.bindPopup("Distrito "+d.distrito+"<br>Población: "+d.poblacion)
+.bindPopup("Distrito "+d.distrito+
+"<br>Población: "+d.poblacion)
 .addTo(capaDistritos);
 
 });
-
-}
-
 
 // ================= DIBUJAR RECINTOS =================
 
@@ -183,19 +190,43 @@ var fCon=document.getElementById("filtroCON2021").value;
 var fDip=document.getElementById("filtroDip").value;
 var f52=document.getElementById("filtro20252V").value;
 
-datosRecintos.forEach(r=>{
+/* 🔥 SOLO UN FILTRO ACTIVO A LA VEZ */
+if(fDist!="TODOS"){
+fCon="TODOS"; fDip="TODOS"; f52="TODOS";
+}
+if(fCon!="TODOS"){
+fDist="TODOS"; fDip="TODOS"; f52="TODOS";
+}
+if(fDip!="TODOS"){
+fDist="TODOS"; fCon="TODOS"; f52="TODOS";
+}
+if(f52!="TODOS"){
+fDist="TODOS"; fCon="TODOS"; fDip="TODOS";
+}
 
-if(fDist!="TODOS" && r.Distrito!=fDist) return;
-if(fCon!="TODOS" && r.CON2021!=fCon) return;
-if(fDip!="TODOS" && r.Dip20251V!=fDip) return;
-if(f52!="TODOS" && r["20252V"]!=f52) return;
+datosRecintos.forEach(r=>{
 
 var color="#3388ff";
 
-if(fDist!="TODOS") color=colorDistrito(r.Distrito);
-if(fCon!="TODOS") color=colorPartido(r.CON2021);
-if(fDip!="TODOS") color=colorPartido(r.Dip20251V);
-if(f52!="TODOS") color=colorPartido(r["20252V"]);
+if(fDist!="TODOS"){
+if(r.Distrito!=fDist) return;
+color=colorDistrito(r.Distrito);
+}
+
+if(fCon!="TODOS"){
+if(r.CON2021!=fCon) return;
+color=colorPartido(r.CON2021);
+}
+
+if(fDip!="TODOS"){
+if(r.Dip20251V!=fDip) return;
+color=colorPartido(r.Dip20251V);
+}
+
+if(f52!="TODOS"){
+if(r["20252V"]!=f52) return;
+color=colorPartido(r["20252V"]);
+}
 
 L.circleMarker([r.Latitud,r.Longitud],{
 radius:radioRecinto(r.Habilitados2026),
@@ -204,8 +235,19 @@ color:"#333",
 weight:1,
 fillOpacity:0.8
 })
-.bindPopup("<b>"+r.Recinto+"</b><br>"+r.Distrito+
-"<br>Habilitados: "+r.Habilitados2026)
+.bindPopup(`
+<b>${r.Recinto}</b><br>
+Distrito: ${r.Distrito}<br>
+Zona: ${r.Zona}<br>
+Circunscripción: ${r.circun}<br>
+Municipio: ${r.Municipio}<br>
+Provincia: ${r.Provincia}<br>
+Habilitados 2025: ${r.Habilitados2025}<br>
+Habilitados 2026: ${r.Habilitados2026}<br>
+CON2021: ${r.CON2021}<br>
+Dip20251V: ${r.Dip20251V}<br>
+20252V: ${r["20252V"]}
+`)
 .addTo(capaRecintos);
 
 });
