@@ -1,261 +1,189 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8" />
 <title>Mapa Electoral SCZ 2026</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-}
-#map{
-    height:100vh;
-}
+html, body { margin:0; padding:0; }
+#map { height: 100vh; width:100%; }
 
-/* BUSCADOR */
-.buscador-container{
+.control-box {
     position:absolute;
-    top:20px;
-    left:50%;
-    transform:translateX(-50%);
+    top:10px;
+    right:10px;
     z-index:1000;
-    width:420px;
-}
-#buscadorRecinto{
-    width:100%;
-    padding:12px;
-    border-radius:12px;
-    border:none;
-    font-size:15px;
-    box-shadow:0 3px 8px rgba(0,0,0,0.3);
-}
-#sugerencias{
     background:white;
-    max-height:250px;
-    overflow-y:auto;
-    border-radius:12px;
-    margin-top:5px;
-    box-shadow:0 3px 8px rgba(0,0,0,0.3);
-}
-.sugerencia-item{
     padding:10px;
-    cursor:pointer;
-    border-bottom:1px solid #eee;
-}
-.sugerencia-item:hover{
-    background:#f1f1f1;
+    border-radius:8px;
+    box-shadow:0 0 10px rgba(0,0,0,0.2);
+    font-size:14px;
 }
 </style>
 </head>
-
 <body>
-
-<div class="buscador-container">
-    <input type="text" id="buscadorRecinto" placeholder="🔎 Buscar recinto..." autocomplete="off">
-    <div id="sugerencias"></div>
-</div>
 
 <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<div class="control-box">
+<b>Color por:</b><br>
+<select id="filtroGanador">
+    <option value="distrito">Distrito</option>
+    <option value="CON2021">CON2021</option>
+    <option value="Dip20251V">Dip20251V</option>
+    <option value="20252V">20252V</option>
+</select>
+</div>
 
 <script>
 
-let map = L.map('map').setView([-17.78, -63.18], 11);
+// ============================
+// INICIAR MAPA
+// ============================
+var map = L.map('map').setView([-17.7833, -63.1821], 12);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'&copy; OpenStreetMap'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
 }).addTo(map);
 
-let recintosData = [];
-let uvData = [];
-let marcadores = [];
-let uvLayer;
-let maxUV = 0;
+var recintosLayer = [];
 
-/* =========================
-   RECINTOS
-========================= */
+// ============================
+// COLOR POR DISTRITO
+// ============================
+function colorDistrito(d) {
+    return d == 1 ? "#e41a1c" :
+           d == 2 ? "#377eb8" :
+           d == 3 ? "#4daf4a" :
+           d == 4 ? "#984ea3" :
+           d == 5 ? "#ff7f00" :
+           d == 6 ? "#ffff33" :
+           d == 7 ? "#a65628" :
+           d == 8 ? "#f781bf" :
+           d == 9 ? "#999999" :
+                    "#000000";
+}
 
+// ============================
+// COLOR POR PARTIDO
+// ============================
+function colorPartido(p) {
+    if(!p) return "#666";
+
+    p = p.toUpperCase();
+
+    if(p.includes("C-A")) return "orange";
+    if(p.includes("UCS")) return "#00cfff";
+    if(p.includes("NULO")) return "blue";
+    if(p.includes("MAS")) return "#0033cc";
+    if(p.includes("PDC")) return "green";
+    if(p.includes("DEMOCRATAS")) return "green";
+    if(p.includes("UNIDAD")) return "yellow";
+    if(p.includes("LIBRE")) return "red";
+
+    return "#888";
+}
+
+// ============================
+// CARGAR UV (ZONAS)
+// ============================
+fetch("csvjsondistritos.json")
+.then(res => res.json())
+.then(data => {
+
+    data.forEach(zona => {
+
+        var coords = zona.WKT
+            .replace("POLYGON ((", "")
+            .replace("))", "")
+            .split(",")
+            .map(function(c){
+                var p = c.trim().split(" ");
+                return [parseFloat(p[1]), parseFloat(p[0])];
+            });
+
+        var polygon = L.polygon(coords, {
+            color: "#444",
+            weight: 1,
+            fillColor: colorDistrito(zona.distrito),
+            fillOpacity: 0.15
+        }).addTo(map);
+
+        polygon.bindPopup(
+            "<b>UV:</b> " + zona.zona + "<br>" +
+            "<b>Distrito:</b> " + zona.distrito + "<br>" +
+            "<b>Población:</b> " + zona.poblacion
+        );
+
+    });
+
+});
+
+// ============================
+// CARGAR RECINTOS 2026
+// ============================
 fetch("recintos2026.json")
 .then(res => res.json())
 .then(data => {
 
-    recintosData = data;
+    data.forEach(r => {
 
-    cargarRecintos();
-    iniciarBuscador();
-});
+        var habilitados = parseInt(r.Habilitados2026) || 0;
+        var radio = Math.sqrt(habilitados) * 0.6;
 
-/* =========================
-   UV
-========================= */
-
-fetch("uv2026.json")  // <-- tu archivo UV
-.then(res => res.json())
-.then(data => {
-
-    uvData = data;
-
-    data.forEach(u=>{
-        let pobl = parseInt(u.Habilitados2026 || 0);
-        if(pobl > maxUV) maxUV = pobl;
-    });
-
-    cargarUV();
-});
-
-function colorUV(valor){
-    if(maxUV === 0) return "gray";
-
-    let intensidad = valor / maxUV;
-    let rojo = Math.floor(255 * intensidad);
-    let verde = Math.floor(200 * (1 - intensidad));
-
-    return `rgb(${rojo},${verde},0)`;
-}
-
-function cargarUV(){
-
-    if(uvLayer) map.removeLayer(uvLayer);
-
-    uvLayer = L.layerGroup();
-
-    uvData.forEach(u=>{
-
-        let lat = parseFloat(u.Latitud);
-        let lng = parseFloat(u.Longitud);
-
-        if(!lat || !lng) return;
-
-        let pobl = parseInt(u.Habilitados2026 || 0);
-
-        let circle = L.circle([lat,lng],{
-            radius:300,
-            color:colorUV(pobl),
-            fillColor:colorUV(pobl),
-            fillOpacity:0.4,
-            weight:1
-        });
-
-        circle.bindPopup(`
-            <b>UV ${u.UV || ""}</b><br><br>
-            👤 Habilitados UV: <b>${pobl}</b>
-        `);
-
-        uvLayer.addLayer(circle);
-    });
-
-    uvLayer.addTo(map);
-}
-
-/* =========================
-   RECINTOS
-========================= */
-
-function cargarRecintos(){
-
-    marcadores.forEach(m => map.removeLayer(m));
-    marcadores = [];
-
-    recintosData.forEach(r=>{
-
-        let lat = parseFloat(r.Latitud);
-        let lng = parseFloat(r.Longitud);
-        if(!lat || !lng) return;
-
-        let marker = L.circleMarker([lat,lng],{
-            radius:7,
-            fillColor:"#000",
-            color:"#000",
-            weight:1,
-            fillOpacity:0.9
+        var marker = L.circleMarker([r.lat, r.lng], {
+            radius: radio,
+            fillColor: colorDistrito(r.DISTRITO),
+            color: "#000",
+            weight: 1,
+            fillOpacity: 0.8
         }).addTo(map);
 
-        marker.bindPopup(`
-            <b>${r.Recinto}</b><br><br>
-            📍 Distrito: ${r.Distrito || "-"}<br>
-            👥 Jefes de Recinto: ${r.JefesdeRecinto || "-"}<br>
-            🗳 Mesas 2026: ${r["Cantidad Mesas 2026"] || "-"}<br>
-            👤 Habilitados 2026: <b>${r.Habilitados2026 || 0}</b><br><br>
-            🏆 <b>Ganadores:</b><br>
-            • CON2021: ${r.CON2021 || "-"}<br>
-            • Dip20251V: ${r.Dip20251V || "-"}<br>
-            • 20252V: ${r["20252V"] || "-"}
-        `);
+        marker.datos = r;
 
-        marcadores.push(marker);
-    });
-}
+        marker.bindPopup(
+            "<b>" + r.Recinto + "</b><br>" +
+            "<b>Distrito:</b> " + r.DISTRITO + "<br>" +
+            "<b>Mesas 2026:</b> " + r["Cantidad Mesas 2026"] + "<br>" +
+            "<b>Jefes:</b> " + r.JefesdeRecinto + "<br>" +
+            "<b>Habilitados:</b> " + habilitados + "<br><br>" +
+            "<b>CON2021:</b> " + (r.CON2021 || "-") + "<br>" +
+            "<b>Dip20251V:</b> " + (r.Dip20251V || "-") + "<br>" +
+            "<b>20252V:</b> " + (r["20252V"] || "-")
+        );
 
-/* =========================
-   BUSCADOR
-========================= */
+        recintosLayer.push(marker);
 
-function iniciarBuscador(){
-
-    const input = document.getElementById("buscadorRecinto");
-    const sugerencias = document.getElementById("sugerencias");
-
-    input.addEventListener("input", function(){
-
-        let texto = this.value.toLowerCase();
-        sugerencias.innerHTML = "";
-
-        if(texto.length < 2) return;
-
-        let resultados = recintosData.filter(r =>
-            r.Recinto &&
-            r.Recinto.toLowerCase().includes(texto)
-        ).slice(0,10);
-
-        resultados.forEach(r=>{
-
-            let div = document.createElement("div");
-            div.className="sugerencia-item";
-            div.innerText=r.Recinto;
-
-            div.onclick=function(){
-                seleccionarRecinto(r);
-            };
-
-            sugerencias.appendChild(div);
-        });
     });
 
-    input.addEventListener("keypress", function(e){
-        if(e.key==="Enter"){
-            let resultado = recintosData.find(r =>
-                r.Recinto &&
-                r.Recinto.toLowerCase().includes(input.value.toLowerCase())
-            );
-            if(resultado){
-                seleccionarRecinto(resultado);
-            }
+});
+
+// ============================
+// FILTRO DINÁMICO
+// ============================
+document.getElementById("filtroGanador").addEventListener("change", function(){
+
+    var valor = this.value;
+
+    recintosLayer.forEach(function(marker){
+
+        if(valor === "distrito"){
+            marker.setStyle({
+                fillColor: colorDistrito(marker.datos.DISTRITO)
+            });
+        } else {
+            var partido = marker.datos[valor];
+            marker.setStyle({
+                fillColor: colorPartido(partido)
+            });
         }
-    });
-}
 
-function seleccionarRecinto(r){
-
-    let lat = parseFloat(r.Latitud);
-    let lng = parseFloat(r.Longitud);
-    if(!lat || !lng) return;
-
-    map.setView([lat,lng],16);
-
-    marcadores.forEach(m=>{
-        let pos = m.getLatLng();
-        if(pos.lat===lat && pos.lng===lng){
-            m.openPopup();
-        }
     });
 
-    document.getElementById("sugerencias").innerHTML="";
-}
+});
 
 </script>
 
