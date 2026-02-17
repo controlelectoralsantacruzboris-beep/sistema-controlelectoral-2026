@@ -121,34 +121,56 @@ return colores[n%10];
 function radioRecinto(valor){
 valor = Number(valor);
 if(isNaN(valor)) return 4;
-return 5 + (valor/1000);
+return 5 + (valor/900);
 }
 
 
-// ================= WKT SIMPLE =================
+// ================= PARSER WKT ROBUSTO =================
 
-function wktToLatLng(wkt){
+function parseWKT(wkt){
 
-wkt = wkt.replace(/MULTIPOLYGON\s*\(\(\(/,"")
-         .replace(/POLYGON\s*\(\(/,"")
-         .replace(/\)\)\)/,"")
-         .replace(/\)\)/,"")
-         .trim();
+if(!wkt || typeof wkt !== "string") return [];
 
-var coords = wkt.split(",");
-var latlngs = [];
+wkt = wkt.trim();
 
-coords.forEach(c=>{
-var parts = c.trim().split(/\s+/);
-if(parts.length>=2){
-latlngs.push([
-parseFloat(parts[1]),
-parseFloat(parts[0])
-]);
+let multipolygon = wkt.startsWith("MULTIPOLYGON");
+let limpio = wkt
+.replace("MULTIPOLYGON(((","")
+.replace("POLYGON ((","")
+.replace("POLYGON((","")
+.replace(/\)\)\)/g,"")
+.replace(/\)\)/g,"");
+
+let grupos = limpio.split("),(");
+let resultado = [];
+
+for(let g=0; g<grupos.length; g++){
+
+let coords = grupos[g].split(",");
+let latlngs=[];
+
+for(let i=0;i<coords.length;i++){
+
+let p = coords[i].trim().split(/\s+/);
+
+if(p.length>=2){
+let lng = parseFloat(p[0]);
+let lat = parseFloat(p[1]);
+if(!isNaN(lat) && !isNaN(lng)){
+latlngs.push([lat,lng]);
 }
-});
+}
 
-return latlngs;
+}
+
+if(latlngs.length>2){
+resultado.push(latlngs);
+}
+
+}
+
+return resultado;
+
 }
 
 
@@ -158,30 +180,42 @@ function dibujarDistritos(){
 
 capaDistritos.clearLayers();
 
-if(datosDistritos.length===0) return;
+if(!datosDistritos || datosDistritos.length===0) return;
 
-var maxPob = Math.max(...datosDistritos.map(d=>Number(d.poblacion)||0));
+let maxPob=0;
 
-datosDistritos.forEach(d=>{
+for(let i=0;i<datosDistritos.length;i++){
+let p = Number(datosDistritos[i].poblacion);
+if(!isNaN(p) && p>maxPob) maxPob=p;
+}
 
-if(!d.WKT) return;
+if(maxPob===0) maxPob=1;
 
-var latlngs = wktToLatLng(d.WKT);
-if(latlngs.length<3) return;
+for(let i=0;i<datosDistritos.length;i++){
 
-var intensidad = (Number(d.poblacion)||0)/maxPob;
+let d = datosDistritos[i];
 
-L.polygon(latlngs,{
+if(!d.WKT) continue;
+
+let grupos = parseWKT(d.WKT);
+
+for(let g=0; g<grupos.length; g++){
+
+let intensidad = (Number(d.poblacion)||0)/maxPob;
+
+L.polygon(grupos[g],{
 color:"#000",
 weight:1,
 fillColor:"#ff0000",
 fillOpacity:0.15 + intensidad*0.5
-})
-.addTo(capaDistritos);
+}).addTo(capaDistritos);
 
-});
+}
+
+}
 
 capaDistritos.bringToBack();
+
 }
 
 
