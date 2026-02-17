@@ -11,7 +11,6 @@ body{
     margin:0;
     font-family:Arial, sans-serif;
 }
-
 #map{
     height:100vh;
 }
@@ -25,7 +24,6 @@ body{
     z-index:1000;
     width:420px;
 }
-
 #buscadorRecinto{
     width:100%;
     padding:12px;
@@ -34,7 +32,6 @@ body{
     font-size:15px;
     box-shadow:0 3px 8px rgba(0,0,0,0.3);
 }
-
 #sugerencias{
     background:white;
     max-height:250px;
@@ -43,13 +40,11 @@ body{
     margin-top:5px;
     box-shadow:0 3px 8px rgba(0,0,0,0.3);
 }
-
 .sugerencia-item{
     padding:10px;
     cursor:pointer;
     border-bottom:1px solid #eee;
 }
-
 .sugerencia-item:hover{
     background:#f1f1f1;
 }
@@ -71,13 +66,19 @@ body{
 
 let map = L.map('map').setView([-17.78, -63.18], 11);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; OpenStreetMap'
 }).addTo(map);
 
 let recintosData = [];
+let uvData = [];
 let marcadores = [];
-let maxPoblacion = 0;
+let uvLayer;
+let maxUV = 0;
+
+/* =========================
+   RECINTOS
+========================= */
 
 fetch("recintos2026.json")
 .then(res => res.json())
@@ -85,50 +86,93 @@ fetch("recintos2026.json")
 
     recintosData = data;
 
-    // Detectar población máxima
-    data.forEach(r => {
-        let poblacion = parseInt(r.Habilitados2026 || 0);
-        if(poblacion > maxPoblacion){
-            maxPoblacion = poblacion;
-        }
-    });
-
     cargarRecintos();
     iniciarBuscador();
 });
 
-function colorPorIntensidad(valor){
+/* =========================
+   UV
+========================= */
 
-    if(maxPoblacion === 0) return "gray";
+fetch("uv2026.json")  // <-- tu archivo UV
+.then(res => res.json())
+.then(data => {
 
-    let intensidad = valor / maxPoblacion;
+    uvData = data;
 
+    data.forEach(u=>{
+        let pobl = parseInt(u.Habilitados2026 || 0);
+        if(pobl > maxUV) maxUV = pobl;
+    });
+
+    cargarUV();
+});
+
+function colorUV(valor){
+    if(maxUV === 0) return "gray";
+
+    let intensidad = valor / maxUV;
     let rojo = Math.floor(255 * intensidad);
     let verde = Math.floor(200 * (1 - intensidad));
 
     return `rgb(${rojo},${verde},0)`;
 }
 
+function cargarUV(){
+
+    if(uvLayer) map.removeLayer(uvLayer);
+
+    uvLayer = L.layerGroup();
+
+    uvData.forEach(u=>{
+
+        let lat = parseFloat(u.Latitud);
+        let lng = parseFloat(u.Longitud);
+
+        if(!lat || !lng) return;
+
+        let pobl = parseInt(u.Habilitados2026 || 0);
+
+        let circle = L.circle([lat,lng],{
+            radius:300,
+            color:colorUV(pobl),
+            fillColor:colorUV(pobl),
+            fillOpacity:0.4,
+            weight:1
+        });
+
+        circle.bindPopup(`
+            <b>UV ${u.UV || ""}</b><br><br>
+            👤 Habilitados UV: <b>${pobl}</b>
+        `);
+
+        uvLayer.addLayer(circle);
+    });
+
+    uvLayer.addTo(map);
+}
+
+/* =========================
+   RECINTOS
+========================= */
+
 function cargarRecintos(){
 
     marcadores.forEach(m => map.removeLayer(m));
     marcadores = [];
 
-    recintosData.forEach(r => {
+    recintosData.forEach(r=>{
 
         let lat = parseFloat(r.Latitud);
         let lng = parseFloat(r.Longitud);
-
         if(!lat || !lng) return;
 
-        let habilitados = parseInt(r.Habilitados2026 || 0);
-
         let marker = L.circleMarker([lat,lng],{
-            radius:9,
-            fillColor: colorPorIntensidad(habilitados),
+            radius:7,
+            fillColor:"#000",
             color:"#000",
             weight:1,
-            fillOpacity:0.85
+            fillOpacity:0.9
         }).addTo(map);
 
         marker.bindPopup(`
@@ -136,11 +180,11 @@ function cargarRecintos(){
             📍 Distrito: ${r.Distrito || "-"}<br>
             👥 Jefes de Recinto: ${r.JefesdeRecinto || "-"}<br>
             🗳 Mesas 2026: ${r["Cantidad Mesas 2026"] || "-"}<br>
-            👤 Habilitados 2026: <b>${habilitados}</b><br><br>
+            👤 Habilitados 2026: <b>${r.Habilitados2026 || 0}</b><br><br>
             🏆 <b>Ganadores:</b><br>
-            • 2021: ${r.AA || "-"}<br>
-            • 2022: ${r.AB || "-"}<br>
-            • 2025: ${r.AC || "-"}
+            • CON2021: ${r.CON2021 || "-"}<br>
+            • Dip20251V: ${r.Dip20251V || "-"}<br>
+            • 20252V: ${r["20252V"] || "-"}
         `);
 
         marcadores.push(marker);
@@ -148,7 +192,7 @@ function cargarRecintos(){
 }
 
 /* =========================
-   BUSCADOR TIPO GOOGLE
+   BUSCADOR
 ========================= */
 
 function iniciarBuscador(){
@@ -168,13 +212,13 @@ function iniciarBuscador(){
             r.Recinto.toLowerCase().includes(texto)
         ).slice(0,10);
 
-        resultados.forEach(r => {
+        resultados.forEach(r=>{
 
             let div = document.createElement("div");
-            div.className = "sugerencia-item";
-            div.innerText = r.Recinto;
+            div.className="sugerencia-item";
+            div.innerText=r.Recinto;
 
-            div.onclick = function(){
+            div.onclick=function(){
                 seleccionarRecinto(r);
             };
 
@@ -183,14 +227,11 @@ function iniciarBuscador(){
     });
 
     input.addEventListener("keypress", function(e){
-
-        if(e.key === "Enter"){
-
+        if(e.key==="Enter"){
             let resultado = recintosData.find(r =>
                 r.Recinto &&
                 r.Recinto.toLowerCase().includes(input.value.toLowerCase())
             );
-
             if(resultado){
                 seleccionarRecinto(resultado);
             }
@@ -202,22 +243,18 @@ function seleccionarRecinto(r){
 
     let lat = parseFloat(r.Latitud);
     let lng = parseFloat(r.Longitud);
-
     if(!lat || !lng) return;
-
-    document.getElementById("sugerencias").innerHTML = "";
-    document.getElementById("buscadorRecinto").value = r.Recinto;
 
     map.setView([lat,lng],16);
 
-    marcadores.forEach(m => {
-
+    marcadores.forEach(m=>{
         let pos = m.getLatLng();
-
-        if(pos.lat === lat && pos.lng === lng){
+        if(pos.lat===lat && pos.lng===lng){
             m.openPopup();
         }
     });
+
+    document.getElementById("sugerencias").innerHTML="";
 }
 
 </script>
