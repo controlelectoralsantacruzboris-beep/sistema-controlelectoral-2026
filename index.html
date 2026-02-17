@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8"/>
-<title>Sistema de Monitoreo Electoral 2026</title>
+<title>Sistema Electoral 2026</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -12,17 +12,13 @@
 <style>
 body { margin:0; display:flex; font-family:Arial; overflow:hidden; }
 #map { width:75%; height:100vh; }
-
 #dashboard {
 width:25%;
 background:#1e1e1e;
 color:white;
 padding:15px;
-display:flex;
-flex-direction:column;
 overflow:hidden;
 }
-
 #rankingRecintos{
 max-height:300px;
 overflow-y:auto;
@@ -30,12 +26,6 @@ margin-top:10px;
 border-top:1px solid #444;
 padding-top:10px;
 }
-
-.ranking-item{
-font-size:13px;
-margin-bottom:4px;
-}
-
 #controls{
 position:absolute;
 top:10px;
@@ -46,35 +36,26 @@ background:white;
 padding:12px;
 border-radius:8px;
 box-shadow:0 0 10px rgba(0,0,0,0.3);
-width:320px;
-text-align:center;
 }
 </style>
 </head>
 <body>
 
 <div id="controls">
-<select id="filtro">
-<option value="Habilitados2026">Habilitados2026</option>
-<option value="CON2021">CON2021</option>
-<option value="Dip20251V">Dip20251V</option>
-<option value="20252V">20252V</option>
-</select>
-<div style="margin-top:8px;font-weight:bold;">
+<b>Sistema Electoral 2026</b><br>
 INFORMACION BORIS RAMIREZ
-</div>
 </div>
 
 <div id="map"></div>
 
 <div id="dashboard">
-<h3>📊 Dashboard Electoral</h3>
+<h3>📊 Dashboard</h3>
 <b>Total Recintos:</b>
 <div id="totalRecintos">0</div>
-<b>Total Habilitados 2026:</b>
+<b>Total Habilitados:</b>
 <div id="totalHabilitados">0</div>
 <hr>
-<b>🏆 Ranking Recintos</b>
+<b>Ranking</b>
 <div id="rankingRecintos"></div>
 </div>
 
@@ -88,29 +69,18 @@ var layerRecintos=L.layerGroup().addTo(map);
 
 var recintos=[];
 
-// ===== COLORES =====
+// ===== FUNCIONES =====
+function extraerNumeroDistrito(texto){
+if(!texto) return null;
+let m=texto.toString().match(/\d+/);
+return m?parseInt(m[0]):null;
+}
+
 function colorDistrito(numero){
 let colores=["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
 "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf",
 "#8B0000","#006400","#00008B","#FF8C00","#4B0082"];
 return colores[(numero-1)%colores.length];
-}
-
-function colorPartido(p){
-if(!p) return "#999";
-p=p.toUpperCase();
-if(p.includes("UNIDAD")) return "#FFD700";
-if(p.includes("MAS")) return "#0033CC";
-if(p.includes("LIBRE")) return "#FF0000";
-if(p.includes("PDC")) return "#008000";
-if(p.includes("UCS")) return "#00BFFF";
-return "#999";
-}
-
-function extraerNumeroDistrito(texto){
-if(!texto) return null;
-let match=texto.toString().match(/\d+/);
-return match?parseInt(match[0]):null;
 }
 
 function colorUV(p){
@@ -122,20 +92,21 @@ return "#660000";
 }
 
 // ===== CARGAR UV =====
-fetch("csvjsondistritos.json")
+fetch("csvjsondistritos.json?v=" + Date.now())
 .then(res=>res.json())
 .then(data=>{
+console.log("UV cargadas:", data.length);
+
 data.forEach(item=>{
 if(!item.WKT) return;
 
-let wicket=new Wkt.Wkt();
-wicket.read(item.WKT);
+let w=new Wkt.Wkt();
+w.read(item.WKT);
 
 let poblacion=parseInt(item.poblacion)||0;
 let distritoNum=extraerNumeroDistrito(item.distrito);
-let nombreUV=item.zona||"UV sin nombre";
 
-let poly=wicket.toObject({
+let poly=w.toObject({
 color:distritoNum?colorDistrito(distritoNum):"#000",
 weight:2,
 fillColor:colorUV(poblacion),
@@ -143,116 +114,76 @@ fillOpacity:0.75
 });
 
 poly.bindPopup(`
-<b>🗺 UV: ${nombreUV}</b><br><br>
-🏘 Distrito: ${item.distrito||"-"}<br>
-👥 Habitantes: ${poblacion.toLocaleString()}
+<b>UV: ${item.zona||"-"}</b><br>
+Distrito: ${item.distrito||"-"}<br>
+Habitantes: ${poblacion.toLocaleString()}
 `);
 
 poly.addTo(layerUV);
 });
-});
+})
+.catch(e=>console.error("Error UV:",e));
 
 // ===== CARGAR RECINTOS =====
-fetch("recintos2026.json")
-.then(res => res.json())
-.then(json => {
+fetch("recintos2026.json?v=" + Date.now())
+.then(res=>res.json())
+.then(data=>{
 
-console.log("Recintos cargados:", json.length);
+console.log("Recintos cargados:", data.length);
 
-let bounds = [];
+let bounds=[];
 
-json.forEach(row => {
+data.forEach(row=>{
 
-let lat = parseFloat(row.Latitud);
-let lng = parseFloat(row.Longitud);
+let lat=parseFloat(row.Latitud);
+let lng=parseFloat(row.Longitud);
 
-if (isNaN(lat) || isNaN(lng)) return;
+if(isNaN(lat)||isNaN(lng)) return;
 
-let hab = Number(row.Habilitados2026) || 0;
-let radio = Math.max(5, Math.sqrt(hab) / 3);
+let hab=Number(row.Habilitados2026)||0;
+let radio=Math.max(5,Math.sqrt(hab)/3);
 
-let distritoNum = extraerNumeroDistrito(row.Distrito);
-let color = distritoNum ? colorDistrito(distritoNum) : "#FFD700";
+let distritoNum=extraerNumeroDistrito(row.Distrito);
+let color=distritoNum?colorDistrito(distritoNum):"#FFD700";
 
-let marker = L.circleMarker([lat, lng], {
-radius: radio,
-fillColor: color,
-color: color,
-fillOpacity: 0.9
+let marker=L.circleMarker([lat,lng],{
+radius:radio,
+fillColor:color,
+color:color,
+fillOpacity:0.9
 }).addTo(layerRecintos);
 
-marker.datos = row;
-
 marker.bindPopup(`
-<b>📍 ${row.Recinto}</b><br><br>
-🏘 Distrito: ${row.Distrito||"-"}<br>
-👔 Jefes: ${row.JefesdeRecinto||0}<br>
-🗳 Mesas: ${row["Cantidad Mesas 2026"]||0}<br>
-👥 Habilitados: ${hab.toLocaleString()}<br><br>
-🏆 Ganadores:<br>
-• 2021: ${row.CON2021||"-"}<br>
-• Dip2025: ${row.Dip20251V||"-"}<br>
-• 2025: ${row["20252V"]||"-"}
+<b>${row.Recinto}</b><br>
+Distrito: ${row.Distrito||"-"}<br>
+Habilitados: ${hab.toLocaleString()}
 `);
 
 recintos.push(marker);
-bounds.push([lat, lng]);
+bounds.push([lat,lng]);
 
 });
 
-if (bounds.length > 0) {
+if(bounds.length>0){
 map.fitBounds(bounds);
 }
 
 actualizarDashboard();
 
 })
-.catch(error => {
-console.error("Error cargando recintos:", error);
-});
+.catch(e=>console.error("Error recintos:",e));
 
 // ===== DASHBOARD =====
 function actualizarDashboard(){
-let totalRec=recintos.length;
-let totalHab=0;
-let ranking=[];
-
+let total=0;
 recintos.forEach(m=>{
-let hab=Number(m.datos.Habilitados2026)||0;
-totalHab+=hab;
-ranking.push({nombre:m.datos.Recinto,habilitados:hab});
+let txt=m.getPopup().getContent();
+let match=txt.match(/Habilitados: ([\d,]+)/);
+if(match) total+=Number(match[1].replace(/,/g,""));
 });
-
-document.getElementById("totalRecintos").innerHTML=totalRec;
-document.getElementById("totalHabilitados").innerHTML=totalHab.toLocaleString();
-
-ranking.sort((a,b)=>b.habilitados-a.habilitados);
-
-let html="";
-ranking.forEach(r=>{
-html+=`<div class="ranking-item">
-${r.nombre} - ${r.habilitados.toLocaleString()}
-</div>`;
-});
-
-document.getElementById("rankingRecintos").innerHTML=html;
+document.getElementById("totalRecintos").innerHTML=recintos.length;
+document.getElementById("totalHabilitados").innerHTML=total.toLocaleString();
 }
-
-// ===== FILTRO =====
-document.getElementById("filtro").addEventListener("change",function(){
-let col=this.value;
-
-recintos.forEach(m=>{
-if(col==="Habilitados2026"){
-let distritoNum=extraerNumeroDistrito(m.datos.Distrito);
-let color=distritoNum?colorDistrito(distritoNum):"#FFD700";
-m.setStyle({fillColor:color,color:color});
-}else{
-let color=colorPartido(m.datos[col]);
-m.setStyle({fillColor:color,color:color});
-}
-});
-});
 
 </script>
 </body>
