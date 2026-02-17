@@ -71,40 +71,35 @@ background:#f0f0f0;
 <script>
 
 var map = L.map('map');
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
 var capaRecintos = L.layerGroup().addTo(map);
 var capaDistritos = L.layerGroup().addTo(map);
 
-var datosRecintos = [];
 var markers = [];
 
-// ===== COLORES PARTIDOS =====
+// ===== COLORES =====
 function colorPartido(p){
 if(!p) return "#007bff";
 p = p.toUpperCase();
-
 if(p.includes("DEMOCRATAS")) return "green";
 if(p.includes("PDC")) return "green";
 if(p.includes("MAS-IPSP")) return "blue";
 if(p.includes("NULO")) return "blue";
 if(p.includes("UNIDAD")) return "yellow";
-if(p.includes("LIBER")) return "red";
+if(p.includes("LIBRE")) return "red";
 if(p.includes("UCS")) return "cyan";
 if(p.includes("C-A")) return "orange";
-
 return "#007bff";
 }
 
-// ===== CARGAR RECINTOS =====
+// =======================
+// CARGAR RECINTOS
+// =======================
+
 fetch("recintos2026.json")
 .then(r=>r.json())
 .then(data=>{
-
-datosRecintos = data;
 
 let maxHab = Math.max(...data.map(d=>Number(d.Habilitados2026)||0));
 if(maxHab===0) maxHab=1;
@@ -123,13 +118,12 @@ v2025Set.add(d["20252V"]);
 
 let lat = Number(d.Latitud);
 let lng = Number(d.Longitud);
-
-if(isNaN(lat) || isNaN(lng)) return;
+if(isNaN(lat)||isNaN(lng)) return;
 
 let size = (Number(d.Habilitados2026)||0)/maxHab * 25;
 
 let marker = L.circleMarker([lat,lng],{
-radius: 4 + size,
+radius:4+size,
 fillColor:"#007bff",
 color:"#000",
 weight:1,
@@ -161,11 +155,68 @@ aplicarFiltros();
 
 });
 
+// =======================
+// CARGAR POLIGONOS WKT
+// =======================
+
+fetch("csvjsondistritos.json")
+.then(r=>r.json())
+.then(data=>{
+
+data.forEach(d=>{
+
+if(!d.WKT) return;
+
+try{
+
+let limpio = d.WKT
+.replace("MULTIPOLYGON(((","")
+.replace("POLYGON((","")
+.replace(")))","")
+.replace("))","");
+
+let partes = limpio.split("),(");
+
+partes.forEach(parte=>{
+
+let coords = parte.split(",");
+let latlngs=[];
+
+coords.forEach(c=>{
+let p=c.trim().split(/\s+/);
+if(p.length>=2){
+latlngs.push([parseFloat(p[1]),parseFloat(p[0])]);
+}
+});
+
+if(latlngs.length>2){
+L.polygon(latlngs,{
+color:"#444",
+weight:1,
+fillColor:"#ff0000",
+fillOpacity:0.12
+}).addTo(capaDistritos);
+}
+
+});
+
+}catch(e){}
+
+});
+
+capaDistritos.bringToBack();
+
+});
+
+// =======================
+// FUNCIONES
+// =======================
+
 function llenarSelect(id,set){
-let select = document.getElementById(id);
+let select=document.getElementById(id);
 set.forEach(v=>{
 if(v){
-let opt = document.createElement("option");
+let opt=document.createElement("option");
 opt.value=v;
 opt.text=v;
 select.appendChild(opt);
@@ -173,20 +224,14 @@ select.appendChild(opt);
 });
 }
 
-// ===== CENTRAR MAPA =====
 function centrarMapa(){
-let group = L.featureGroup(markers.map(m=>m.marker));
+let group=L.featureGroup(markers.map(m=>m.marker));
 map.fitBounds(group.getBounds());
 }
 
-// ===== FILTROS UNO POR UNO =====
 document.querySelectorAll("select").forEach(sel=>{
 sel.addEventListener("change",function(){
-
-document.querySelectorAll("select").forEach(s=>{
-if(s!==this) s.value="";
-});
-
+document.querySelectorAll("select").forEach(s=>{ if(s!==this) s.value=""; });
 aplicarFiltros();
 });
 });
@@ -195,32 +240,32 @@ function aplicarFiltros(){
 
 capaRecintos.clearLayers();
 
-let fDistrito = document.getElementById("filtroDistrito").value;
-let fCON = document.getElementById("filtroCON2021").value;
-let fDip = document.getElementById("filtroDip20251V").value;
-let f2025 = document.getElementById("filtro20252V").value;
+let fDistrito=document.getElementById("filtroDistrito").value;
+let fCON=document.getElementById("filtroCON2021").value;
+let fDip=document.getElementById("filtroDip20251V").value;
+let f2025=document.getElementById("filtro20252V").value;
 
 markers.forEach(obj=>{
 
-let d = obj.data;
-let mostrar = true;
-let color = "#007bff";
+let d=obj.data;
+let mostrar=true;
+let color="#007bff";
 
-if(fDistrito && d.Distrito !== fDistrito) mostrar=false;
+if(fDistrito && d.Distrito!==fDistrito) mostrar=false;
 
 if(fCON){
-if(d.CON2021 !== fCON) mostrar=false;
-color = colorPartido(d.CON2021);
+if(d.CON2021!==fCON) mostrar=false;
+color=colorPartido(d.CON2021);
 }
 
 if(fDip){
-if(d.Dip20251V !== fDip) mostrar=false;
-color = colorPartido(d.Dip20251V);
+if(d.Dip20251V!==fDip) mostrar=false;
+color=colorPartido(d.Dip20251V);
 }
 
 if(f2025){
-if(d["20252V"] !== f2025) mostrar=false;
-color = colorPartido(d["20252V"]);
+if(d["20252V"]!==f2025) mostrar=false;
+color=colorPartido(d["20252V"]);
 }
 
 if(mostrar){
@@ -232,34 +277,28 @@ obj.marker.addTo(capaRecintos);
 
 }
 
-// ===== BUSCADOR PREDICTIVO =====
-var input = document.getElementById("searchInput");
-var suggestions = document.getElementById("suggestions");
+var input=document.getElementById("searchInput");
+var suggestions=document.getElementById("suggestions");
 
 input.addEventListener("input",function(){
 
-let texto = this.value.toLowerCase();
+let texto=this.value.toLowerCase();
 suggestions.innerHTML="";
-
 if(texto.length<2) return;
 
 markers
 .filter(m=>m.data.Recinto.toLowerCase().includes(texto))
 .slice(0,8)
 .forEach(m=>{
-
-let div = document.createElement("div");
-div.innerText = m.data.Recinto;
-
-div.onclick = function(){
+let div=document.createElement("div");
+div.innerText=m.data.Recinto;
+div.onclick=function(){
 map.setView(m.marker.getLatLng(),16);
 m.marker.openPopup();
 suggestions.innerHTML="";
 input.value="";
 };
-
 suggestions.appendChild(div);
-
 });
 
 });
