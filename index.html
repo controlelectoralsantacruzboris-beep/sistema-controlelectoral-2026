@@ -73,7 +73,7 @@ background:#f0f0f0;
 
 <script>
 
-// ===== MAPA BASE (centrado por defecto en Santa Cruz) =====
+// ===== MAPA BASE =====
 var map = L.map('map').setView([-17.7833, -63.1821], 11);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
@@ -85,15 +85,30 @@ var capaRecintos = L.layerGroup().addTo(map);
 
 var markers = [];
 
-// ===== GENERADOR DE COLOR AUTOMATICO =====
-function generarColor(texto){
-if(!texto) return "#007bff";
+// ===== COLORES POLITICOS FIJOS =====
+function colorPartido(p){
+if(!p) return "#007bff";
+p = p.toUpperCase();
 
-let hash = 0;
-for(let i=0;i<texto.length;i++){
-hash = texto.charCodeAt(i) + ((hash<<5)-hash);
+if(p.includes("LIBRE")) return "red";
+if(p.includes("C-A")) return "orange";
+if(p.includes("UCS")) return "cyan";
+if(p.includes("NULO")) return "blue";
+if(p.includes("MAS-IPSP")) return "blue";
+if(p.includes("PDC")) return "green";
+if(p.includes("DEMOCRATAS")) return "green";
+if(p.includes("UNIDAD")) return "yellow";
+
+return "#007bff";
 }
 
+// ===== COLOR POR DISTRITO (cuando modo recintos) =====
+function colorDistrito(distrito){
+if(!distrito) return "#007bff";
+let hash = 0;
+for(let i=0;i<distrito.length;i++){
+hash = distrito.charCodeAt(i) + ((hash<<5)-hash);
+}
 let color = "#";
 for(let i=0;i<3;i++){
 let value = (hash >> (i*8)) & 255;
@@ -138,8 +153,17 @@ fillColor:"#ff0000",
 fillOpacity:opacity
 };
 
+},
+onEachFeature:function(feature,layer){
+layer.bindPopup(`
+<b>UV:</b> ${feature.properties.zona || ""}<br>
+<b>Distrito:</b> ${feature.properties.distrito || ""}<br>
+<b>Población:</b> ${feature.properties.poblacion || 0}
+`);
 }
 }).addTo(capaDistritos);
+
+capaDistritos.bringToBack();
 
 })
 .catch(e=>console.error("ERROR UV:",e));
@@ -212,9 +236,9 @@ let d = obj.data;
 let color = "#007bff";
 
 if(modo === "recintos"){
-color = generarColor(d.Distrito);
+color = colorDistrito(d.Distrito);
 }else{
-color = generarColor(d[modo]);
+color = colorPartido(d[modo]);
 }
 
 obj.marker.setStyle({fillColor:color});
@@ -222,6 +246,7 @@ obj.marker.addTo(capaRecintos);
 
 });
 
+// 🔥 GARANTIZAR QUE SIEMPRE ESTÉN ENCIMA
 capaRecintos.bringToFront();
 
 }
