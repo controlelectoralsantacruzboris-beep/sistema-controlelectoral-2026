@@ -10,37 +10,41 @@
 body { margin:0; font-family: Arial; }
 #map { height:100vh; }
 
-/* Buscador estilo Google */
-.search-box{
+.controls{
 position:absolute;
 top:15px;
 left:50%;
 transform:translateX(-50%);
 z-index:1000;
-width:350px;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+justify-content:center;
 }
 
-.search-box input{
-width:100%;
-padding:10px 15px;
-border-radius:25px;
+.controls input, .controls select{
+padding:8px 12px;
+border-radius:20px;
 border:1px solid #ccc;
-font-size:14px;
-outline:none;
-box-shadow:0 2px 6px rgba(0,0,0,0.2);
+font-size:13px;
 }
 
 .suggestions{
+position:absolute;
+top:55px;
+left:50%;
+transform:translateX(-50%);
 background:white;
+width:300px;
 max-height:200px;
 overflow-y:auto;
 border-radius:10px;
-margin-top:5px;
 box-shadow:0 2px 6px rgba(0,0,0,0.2);
+z-index:1000;
 }
 
 .suggestions div{
-padding:8px 12px;
+padding:8px;
 cursor:pointer;
 }
 
@@ -51,19 +55,22 @@ background:#f0f0f0;
 </head>
 <body>
 
-<div class="search-box">
+<div class="controls">
 <input type="text" id="searchInput" placeholder="Buscar recinto...">
-<div id="suggestions" class="suggestions"></div>
+<select id="filtroDistrito"><option value="">Filtrar Distrito</option></select>
+<select id="filtroCON2021"><option value="">Filtrar CON2021</option></select>
+<select id="filtroDip20251V"><option value="">Filtrar Dip20251V</option></select>
+<select id="filtro20252V"><option value="">Filtrar 20252V</option></select>
 </div>
 
+<div id="suggestions" class="suggestions"></div>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== MAPA =====
-var map = L.map('map').setView([-16.5,-68.15], 12);
+var map = L.map('map');
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 maxZoom:19
@@ -75,9 +82,9 @@ var capaDistritos = L.layerGroup().addTo(map);
 var datosRecintos = [];
 var markers = [];
 
-// ===== COLORES POR PARTIDO =====
+// ===== COLORES PARTIDOS =====
 function colorPartido(p){
-if(!p) return "gray";
+if(!p) return "#007bff";
 p = p.toUpperCase();
 
 if(p.includes("DEMOCRATAS")) return "green";
@@ -89,7 +96,7 @@ if(p.includes("LIBER")) return "red";
 if(p.includes("UCS")) return "cyan";
 if(p.includes("C-A")) return "orange";
 
-return "gray";
+return "#007bff";
 }
 
 // ===== CARGAR RECINTOS =====
@@ -102,7 +109,17 @@ datosRecintos = data;
 let maxHab = Math.max(...data.map(d=>Number(d.Habilitados2026)||0));
 if(maxHab===0) maxHab=1;
 
+let distritosSet = new Set();
+let conSet = new Set();
+let dipSet = new Set();
+let v2025Set = new Set();
+
 data.forEach(d=>{
+
+distritosSet.add(d.Distrito);
+conSet.add(d.CON2021);
+dipSet.add(d.Dip20251V);
+v2025Set.add(d["20252V"]);
 
 let lat = Number(d.Latitud);
 let lng = Number(d.Longitud);
@@ -116,23 +133,104 @@ radius: 4 + size,
 fillColor:"#007bff",
 color:"#000",
 weight:1,
-fillOpacity:0.8
-}).addTo(capaRecintos);
+fillOpacity:0.85
+});
 
 marker.bindPopup(`
 <b>🏫 ${d.Recinto}</b><br><br>
 👤 <b>Jefe:</b> ${d.JefesdeRecinto || "N/D"}<br>
-🗳 <b>Habilitados:</b> ${d.Habilitados2026 || 0}
+🗳 <b>Habilitados:</b> ${d.Habilitados2026 || 0}<br>
+🪑 <b>Mesas 2026:</b> ${d["Cantidad Mesas 2026"] || 0}<br>
+🏛 <b>Distrito:</b> ${d.Distrito || ""}<br>
+📊 <b>CON2021:</b> ${d.CON2021 || ""}<br>
+🗳 <b>Dip20251V:</b> ${d.Dip20251V || ""}<br>
+📌 <b>20252V:</b> ${d["20252V"] || ""}
 `);
 
-markers.push({
-nombre:d.Recinto,
-marker:marker
-});
+markers.push({data:d, marker:marker});
 
 });
 
+llenarSelect("filtroDistrito", distritosSet);
+llenarSelect("filtroCON2021", conSet);
+llenarSelect("filtroDip20251V", dipSet);
+llenarSelect("filtro20252V", v2025Set);
+
+centrarMapa();
+aplicarFiltros();
+
 });
+
+function llenarSelect(id,set){
+let select = document.getElementById(id);
+set.forEach(v=>{
+if(v){
+let opt = document.createElement("option");
+opt.value=v;
+opt.text=v;
+select.appendChild(opt);
+}
+});
+}
+
+// ===== CENTRAR MAPA =====
+function centrarMapa(){
+let group = L.featureGroup(markers.map(m=>m.marker));
+map.fitBounds(group.getBounds());
+}
+
+// ===== FILTROS UNO POR UNO =====
+document.querySelectorAll("select").forEach(sel=>{
+sel.addEventListener("change",function(){
+
+document.querySelectorAll("select").forEach(s=>{
+if(s!==this) s.value="";
+});
+
+aplicarFiltros();
+});
+});
+
+function aplicarFiltros(){
+
+capaRecintos.clearLayers();
+
+let fDistrito = document.getElementById("filtroDistrito").value;
+let fCON = document.getElementById("filtroCON2021").value;
+let fDip = document.getElementById("filtroDip20251V").value;
+let f2025 = document.getElementById("filtro20252V").value;
+
+markers.forEach(obj=>{
+
+let d = obj.data;
+let mostrar = true;
+let color = "#007bff";
+
+if(fDistrito && d.Distrito !== fDistrito) mostrar=false;
+
+if(fCON){
+if(d.CON2021 !== fCON) mostrar=false;
+color = colorPartido(d.CON2021);
+}
+
+if(fDip){
+if(d.Dip20251V !== fDip) mostrar=false;
+color = colorPartido(d.Dip20251V);
+}
+
+if(f2025){
+if(d["20252V"] !== f2025) mostrar=false;
+color = colorPartido(d["20252V"]);
+}
+
+if(mostrar){
+obj.marker.setStyle({fillColor:color});
+obj.marker.addTo(capaRecintos);
+}
+
+});
+
+}
 
 // ===== BUSCADOR PREDICTIVO =====
 var input = document.getElementById("searchInput");
@@ -145,12 +243,13 @@ suggestions.innerHTML="";
 
 if(texto.length<2) return;
 
-let filtrados = markers.filter(m=>m.nombre.toLowerCase().includes(texto));
-
-filtrados.slice(0,8).forEach(m=>{
+markers
+.filter(m=>m.data.Recinto.toLowerCase().includes(texto))
+.slice(0,8)
+.forEach(m=>{
 
 let div = document.createElement("div");
-div.innerText = m.nombre;
+div.innerText = m.data.Recinto;
 
 div.onclick = function(){
 map.setView(m.marker.getLatLng(),16);
@@ -165,54 +264,6 @@ suggestions.appendChild(div);
 
 });
 
-// ===== CARGAR DISTRITOS (WKT SIMPLE) =====
-fetch("csvjsondistritos.json")
-.then(r=>r.json())
-.then(data=>{
-
-data.forEach(d=>{
-
-if(!d.WKT) return;
-
-try{
-
-let limpio = d.WKT
-.replace("MULTIPOLYGON(((","")
-.replace("POLYGON((","")
-.replace(")))","")
-.replace("))","");
-
-let coords = limpio.split(",");
-
-let latlngs = [];
-
-coords.forEach(c=>{
-let p = c.trim().split(/\s+/);
-if(p.length>=2){
-latlngs.push([parseFloat(p[1]),parseFloat(p[0])]);
-}
-});
-
-if(latlngs.length>2){
-
-L.polygon(latlngs,{
-color:"#555",
-weight:1,
-fillColor:"#ff0000",
-fillOpacity:0.15
-}).addTo(capaDistritos);
-
-}
-
-}catch(e){}
-
-});
-
-capaDistritos.bringToBack();
-
-});
-
 </script>
-
 </body>
 </html>
