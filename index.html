@@ -1,267 +1,146 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<title>Mapa Electoral SCZ 2026</title>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<style>
-html, body { margin:0; padding:0; }
-#map { height:100vh; width:100%; }
-
-.panel {
-    position:absolute;
-    top:10px;
-    right:10px;
-    z-index:1000;
-    background:white;
-    padding:12px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.2);
-    font-size:14px;
-}
-
-#searchBox {
-    position:absolute;
-    top:10px;
-    left:10px;
-    z-index:1100;
-    background:white;
-    padding:8px;
-    border-radius:10px;
-    box-shadow:0 0 10px rgba(0,0,0,0.2);
-    width:280px;
-}
-
-#searchInput {
-    width:100%;
-    padding:6px;
-    border:1px solid #ccc;
-    border-radius:6px;
-}
-
-#suggestions {
-    background:white;
-    border:1px solid #ccc;
-    border-top:none;
-    max-height:200px;
-    overflow-y:auto;
-}
-
-.suggestion-item {
-    padding:6px;
-    cursor:pointer;
-}
-
-.suggestion-item:hover {
-    background:#f0f0f0;
-}
-</style>
-</head>
-<body>
-
-<div id="map"></div>
-
-<div id="searchBox">
-<input type="text" id="searchInput" placeholder="Buscar recinto..." autocomplete="off"/>
-<div id="suggestions"></div>
-</div>
-
-<div class="panel">
-<b>Color por:</b><br>
-<select id="filtro">
-    <option value="distrito">Distrito</option>
-    <option value="CON2021">CON2021</option>
-    <option value="Dip20251V">Dip20251V</option>
-    <option value="20252V">20252V</option>
-</select>
-</div>
-
 <script>
 
-// ================= MAPA =================
+// ============================
+// MAPA BASE
+// ============================
+
 var map = L.map('map').setView([-17.7833, -63.1821], 12);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Capas separadas
-var uvLayer = L.layerGroup().addTo(map);
-var recintosLayer = [];
+// ============================
+// COLORES POR DISTRITO
+// ============================
 
-// ================= FUNCIONES =================
-function extraerNumeroDistrito(texto){
-    if(!texto) return 0;
-    var match = texto.toString().match(/\d+/);
-    return match ? parseInt(match[0]) : 0;
+function getColorDistrito(d) {
+    const colores = {
+        1:"#e41a1c",2:"#377eb8",3:"#4daf4a",4:"#984ea3",5:"#ff7f00",
+        6:"#ffff33",7:"#a65628",8:"#f781bf",9:"#999999",10:"#66c2a5",
+        11:"#fc8d62",12:"#8da0cb",13:"#e78ac3",14:"#a6d854"
+    };
+    return colores[d] || "#444";
 }
 
-function colorDistrito(d){
-    d = parseInt(d);
-    return d==1?"#e41a1c":
-           d==2?"#377eb8":
-           d==3?"#4daf4a":
-           d==4?"#984ea3":
-           d==5?"#ff7f00":
-           d==6?"#ffff33":
-           d==7?"#a65628":
-           d==8?"#f781bf":
-           d==9?"#999999":
-           d==10?"#66c2a5":
-           "#000";
+// ============================
+// ESCALA POR POBLACION (UV)
+// ============================
+
+function getColorPoblacion(p) {
+    return p > 5000 ? '#800026' :
+           p > 4000 ? '#BD0026' :
+           p > 3000 ? '#E31A1C' :
+           p > 2000 ? '#FC4E2A' :
+           p > 1000 ? '#FD8D3C' :
+           p > 500  ? '#FEB24C' :
+                      '#FED976';
 }
 
-function colorPartido(p){
-    if(!p) return "#666";
-    p = p.toUpperCase();
+// ============================
+// CAPA UV (POLIGONOS)
+// ============================
 
-    if(p.includes("C-A")) return "orange";
-    if(p.includes("UCS")) return "#00cfff";
-    if(p.includes("NULO")) return "blue";
-    if(p.includes("MAS")) return "#0033cc";
-    if(p.includes("PDC")) return "green";
-    if(p.includes("DEMOCRATAS")) return "green";
-    if(p.includes("UNIDAD")) return "yellow";
-    if(p.includes("LIBRE")) return "red";
+let capaUV = L.layerGroup().addTo(map);
 
-    return "#888";
-}
+fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/csvjsondistritos.json')
+.then(res => res.json())
+.then(data => {
 
-// ================= UV =================
-fetch("csvjsondistritos.json")
-.then(r=>r.json())
-.then(data=>{
+    data.forEach(item => {
 
-    data.forEach(zona=>{
+        if(!item.WKT) return;
 
-        if(!zona.WKT) return;
+        // Limpiar texto POLYGON
+        let coordsText = item.WKT
+            .replace("POLYGON ((", "")
+            .replace("))", "");
 
-        var limpio = zona.WKT
-            .replace(/POLYGON\s*\(\(/,"")
-            .replace(/\)\)/,"");
-
-        var coords = limpio.split(",").map(c=>{
-            var p=c.trim().split(/\s+/);
-            return [parseFloat(p[1]),parseFloat(p[0])];
+        let puntos = coordsText.split(",").map(c => {
+            let parts = c.trim().split(" ");
+            return [parseFloat(parts[1]), parseFloat(parts[0])];
         });
 
-        var polygon = L.polygon(coords,{
-            color:"#444",
-            weight:1,
-            fillColor:colorDistrito(zona.distrito),
-            fillOpacity:0.15,
-            interactive:false // no bloquea clicks
+        let poligono = L.polygon(puntos, {
+            color: "#333",
+            weight: 1,
+            fillColor: getColorPoblacion(item.poblacion),
+            fillOpacity: 0.55
         });
 
-        uvLayer.addLayer(polygon);
+        poligono.bindPopup(`
+            <b>Distrito:</b> ${item.distrito}<br>
+            <b>UV (Zona):</b> ${item.zona}<br>
+            <b>Población:</b> ${item.poblacion}<br>
+            <b>Circunscripción:</b> ${item.circuns}
+        `);
+
+        poligono.addTo(capaUV);
     });
 
-    uvLayer.bringToBack(); // 🔥 siempre debajo
 });
 
-// ================= RECINTOS =================
-fetch("recintos2026.json")
-.then(r=>r.json())
-.then(data=>{
+// ============================
+// CAPA RECINTOS
+// ============================
 
-    data.forEach(r=>{
+let capaRecintos = L.layerGroup().addTo(map);
+let listaRecintos = [];
 
-        var lat = parseFloat(r.Latitud);
-        var lng = parseFloat(r.Longitud);
-        if(!lat || !lng) return;
+fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/recintos2026.json')
+.then(res => res.json())
+.then(data => {
 
-        var distritoNumero = extraerNumeroDistrito(r.Distrito);
-        var habilitados = parseInt(r.Habilitados2026) || 0;
-        var radio = Math.sqrt(habilitados) * 0.6;
+    data.forEach(r => {
 
-        var marker = L.circleMarker([lat,lng],{
-            radius:radio,
-            fillColor:colorDistrito(distritoNumero),
-            color:"#000",
-            weight:1,
-            fillOpacity:0.9
-        }).addTo(map);
+        if(!r.Latitud || !r.Longitud) return;
 
-        marker.datos = r;
-        marker.distritoNumero = distritoNumero;
-
-        marker.bindPopup(
-            "<b>"+r.Recinto+"</b>"+
-            "<br><b>"+r.Distrito+"</b>"+
-            "<br><b>Zona:</b> "+r.Zona+
-            "<br><b>Municipio:</b> "+r.Municipio+
-            "<br><b>Mesas 2026:</b> "+r["Cantidad Mesas 2026"]+
-            "<br><b>Habilitados:</b> "+habilitados+
-            "<hr>"+
-            "<b>CON2021:</b> "+(r.CON2021||"-")+
-            "<br><b>Dip20251V:</b> "+(r.Dip20251V||"-")+
-            "<br><b>20252V:</b> "+(r["20252V"]||"-")
+        // EXTRAER NUMERO DE "DISTRITO 10"
+        let distritoNumero = parseInt(
+            r.Distrito.replace("DISTRITO","").trim()
         );
 
-        recintosLayer.push(marker);
+        let marker = L.circleMarker([r.Latitud, r.Longitud], {
+            radius: 8,
+            fillColor: getColorDistrito(distritoNumero),
+            color: "#000",
+            weight: 1,
+            fillOpacity: 0.9
+        });
+
+        marker.bindPopup(`
+            <b>${r.Nombre}</b><br>
+            ${r.Distrito}<br>
+            Dirección: ${r.Direccion}
+        `);
+
+        marker.addTo(capaRecintos);
+
+        listaRecintos.push({
+            nombre: r.Nombre,
+            marker: marker
+        });
+
     });
 
 });
 
-// ================= FILTRO =================
-document.getElementById("filtro").addEventListener("change",function(){
+// ============================
+// BUSCADOR CON PREDICCION
+// ============================
 
-    var val=this.value;
-
-    recintosLayer.forEach(marker=>{
-        if(val==="distrito"){
-            marker.setStyle({
-                fillColor:colorDistrito(marker.distritoNumero)
-            });
-        }else{
-            marker.setStyle({
-                fillColor:colorPartido(marker.datos[val])
-            });
-        }
-    });
+var searchControl = new L.Control.Search({
+    layer: capaRecintos,
+    propertyName: 'nombre',
+    initial: false,
+    zoom: 17,
+    marker: false
 });
 
-// ================= BUSCADOR CON AUTOCOMPLETADO =================
-var input = document.getElementById("searchInput");
-var suggestions = document.getElementById("suggestions");
-
-input.addEventListener("input",function(){
-
-    var texto = this.value.toLowerCase();
-    suggestions.innerHTML = "";
-
-    if(texto.length < 2) return;
-
-    var resultados = recintosLayer.filter(m =>
-        m.datos.Recinto &&
-        m.datos.Recinto.toLowerCase().includes(texto)
-    ).slice(0,8); // máximo 8 sugerencias
-
-    resultados.forEach(marker=>{
-        var div = document.createElement("div");
-        div.className = "suggestion-item";
-        div.textContent = marker.datos.Recinto + " (" + marker.datos.Distrito + ")";
-        div.onclick = function(){
-            map.setView(marker.getLatLng(),16);
-            marker.openPopup();
-            suggestions.innerHTML="";
-            input.value="";
-        };
-        suggestions.appendChild(div);
-    });
-
+searchControl.on('search:locationfound', function(e) {
+    e.layer.openPopup();
 });
 
-// cerrar sugerencias si clic fuera
-document.addEventListener("click",function(e){
-    if(!document.getElementById("searchBox").contains(e.target)){
-        suggestions.innerHTML="";
-    }
-});
+map.addControl(searchControl);
 
 </script>
-</body>
-</html>
