@@ -49,6 +49,30 @@ box-shadow:0 0 10px rgba(0,0,0,0.3);
 width:320px;
 text-align:center;
 }
+
+#buscarRecinto{
+width:100%;
+padding:6px;
+margin-top:8px;
+}
+
+#autocomplete-list{
+position:absolute;
+background:white;
+border:1px solid #ccc;
+max-height:200px;
+overflow-y:auto;
+width:100%;
+z-index:2000;
+}
+
+.autocomplete-item{
+padding:6px;
+cursor:pointer;
+}
+.autocomplete-item:hover{
+background:#f0f0f0;
+}
 </style>
 </head>
 <body>
@@ -60,7 +84,10 @@ text-align:center;
 <option value="CON2021">Ganador 2021</option>
 <option value="Dip20251V">Dip 2025 1V</option>
 <option value="20252V">Ganador 2025 2V</option>
-</select><br><br>
+</select>
+
+<input type="text" id="buscarRecinto" placeholder="Buscar recinto...">
+<div id="autocomplete-list"></div>
 
 <div><b>INFORMACION BORIS RAMIREZ</b></div>
 
@@ -93,71 +120,77 @@ var layerUV=L.layerGroup().addTo(map);
 var layerRecintos=L.layerGroup().addTo(map);
 
 var recintos=[];
+var nombresRecintos=[];
 
-// =====================
+// ======================
 // COLORES
-// =====================
+// ======================
 function colorDistrito(numero){
-let colores=[
-"#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+let colores=["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
 "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf",
-"#8B0000","#006400","#00008B","#FF8C00","#4B0082"
-];
-return colores[(numero-1) % colores.length];
+"#8B0000","#006400","#00008B","#FF8C00","#4B0082"];
+return colores[(numero-1)%colores.length];
 }
 
 function colorPartido(p){
 if(!p) return "#999";
 p=p.toUpperCase();
-if(p.includes("UNIDAD")) return "#FFD700";
-if(p.includes("NULO")) return "#0000FF";
-if(p.includes("PDC")) return "#008000";
-if(p.includes("LIBRE")) return "#FF0000";
 if(p.includes("MAS")) return "#0033CC";
-if(p.includes("C-A")) return "#FF8000";
-if(p.includes("UCS")) return "#00BFFF";
-if(p.includes("DEMOCRATAS")) return "#006400";
-return "#999";
+if(p.includes("CREEMOS")) return "#008000";
+if(p.includes("CC")) return "#FF6600";
+if(p.includes("NULO")) return "#777";
+return "#AA0000";
+}
+
+function colorUV(p){
+if(p<=500) return "#ffe5e5";
+if(p<=3500) return "#ff9999";
+if(p<=7000) return "#ff4d4d";
+if(p<=12000) return "#cc0000";
+return "#660000";
 }
 
 function extraerNumeroDistrito(texto){
 if(!texto) return null;
-let match = texto.toString().match(/\d+/);
-return match ? parseInt(match[0]) : null;
+let match=texto.toString().match(/\d+/);
+return match?parseInt(match[0]):null;
 }
 
-// =====================
-// CARGAR UV AUTOMATICO
-// =====================
+// ======================
+// CARGAR UV CON INTENSIDAD
+// ======================
 fetch("csvjsondistritos.json")
 .then(res=>res.json())
 .then(data=>{
 data.forEach(item=>{
 if(!item.WKT) return;
 
-let wicket=new Wkt.Wkt();
-wicket.read(item.WKT);
+let w=new Wkt.Wkt();
+w.read(item.WKT);
 
+let poblacion=parseInt(item.poblacion)||0;
 let distritoNum=extraerNumeroDistrito(item.distrito);
 
-let poly=wicket.toObject({
+let poly=w.toObject({
 color:distritoNum?colorDistrito(distritoNum):"#000",
 weight:2,
-fillOpacity:0.2
+fillColor:colorUV(poblacion),
+fillOpacity:0.75
 });
 
 poly.bindPopup(`
-<b>🗺 UV: ${item.zona || "-"}</b><br>
-🏘 Distrito: ${item.distrito || "-"}
+<b>🗺 UV: ${item.zona||"-"}</b><br>
+Distrito: ${item.distrito||"-"}<br>
+Habitantes: ${poblacion.toLocaleString()}
 `);
 
 poly.addTo(layerUV);
 });
 });
 
-// =====================
-// CARGAR RECINTOS AUTOMATICO
-// =====================
+// ======================
+// CARGAR RECINTOS
+// ======================
 fetch("recintos2026.json")
 .then(res=>res.json())
 .then(data=>{
@@ -166,13 +199,13 @@ let bounds=[];
 
 data.forEach(row=>{
 
-if(!row.Latitud || !row.Longitud) return;
+if(!row.Latitud||!row.Longitud) return;
 
 let hab=Number(row.Habilitados2026)||0;
-let radio=Math.max(5, Math.sqrt(hab)/3);
+let radio=Math.max(5,Math.sqrt(hab)/3);
 
-let distritoNum = extraerNumeroDistrito(row.Distrito);
-let color = distritoNum ? colorDistrito(distritoNum) : "#FFD700";
+let distritoNum=extraerNumeroDistrito(row.Distrito);
+let color=colorDistrito(distritoNum||1);
 
 let marker=L.circleMarker(
 [row.Latitud,row.Longitud],
@@ -184,84 +217,97 @@ fillOpacity:0.9
 }
 ).addTo(layerRecintos);
 
-marker.datos=row;
-
 marker.bindPopup(`
 <b>📍 ${row.Recinto}</b><br><br>
-🏘 Distrito: ${row.Distrito || "-"}<br>
-👔 Jefes de Recinto: ${row.JefesdeRecinto || 0}<br>
-🗳 Mesas 2026: ${row["Cantidad Mesas 2026"] || 0}<br>
-👥 Habilitados 2026: ${hab.toLocaleString()}<br><br>
-🏆 Ganadores:<br>
-• 2021: ${row.CON2021 || "-"}<br>
-• Dip2025: ${row.Dip20251V || "-"}<br>
-• 2025 2V: ${row["20252V"] || "-"}
+Distrito: ${row.Distrito||"-"}<br>
+Jefes: ${row.JefesdeRecinto||0}<br>
+Habilitados: ${hab.toLocaleString()}<br><br>
+Ganadores:<br>
+2021: ${row.CON2021||"-"}<br>
+Dip2025: ${row.Dip20251V||"-"}<br>
+2025 2V: ${row["20252V"]||"-"}
 `);
 
 recintos.push(marker);
+nombresRecintos.push(row.Recinto);
 bounds.push([row.Latitud,row.Longitud]);
 
 });
 
 if(bounds.length>0) map.fitBounds(bounds);
-
 actualizarDashboard();
 
 });
 
-// =====================
+// ======================
 // DASHBOARD
-// =====================
+// ======================
 function actualizarDashboard(){
-
 let totalRec=recintos.length;
 let totalHab=0;
 let ranking=[];
 
 recintos.forEach(m=>{
-let hab=Number(m.datos.Habilitados2026)||0;
+let hab=Number(m._popup._content.match(/Habilitados: ([\d,]+)/)?.[1].replace(/,/g,''))||0;
 totalHab+=hab;
-ranking.push({nombre:m.datos.Recinto,habilitados:hab});
+ranking.push({nombre:m._popup._content,habilitados:hab});
 });
 
 document.getElementById("totalRecintos").innerHTML=totalRec;
 document.getElementById("totalHabilitados").innerHTML=totalHab.toLocaleString();
-
-ranking.sort((a,b)=>b.habilitados-a.habilitados);
-
-let html="";
-ranking.slice(0,20).forEach(r=>{
-html+=`<div class="ranking-item">
-${r.nombre} - ${r.habilitados.toLocaleString()}
-</div>`;
-});
-
-document.getElementById("rankingRecintos").innerHTML=html;
 }
 
-// =====================
+// ======================
 // FILTRO
-// =====================
+// ======================
 document.getElementById("filtro").addEventListener("change",function(){
-
 let col=this.value;
 
 recintos.forEach(m=>{
-
 if(col==="Habilitados2026"){
-
-let distritoNum = extraerNumeroDistrito(m.datos.Distrito);
-let color = distritoNum ? colorDistrito(distritoNum) : "#FFD700";
-
+let distritoNum=extraerNumeroDistrito(m._popup._content);
+let color=colorDistrito(distritoNum||1);
 m.setStyle({fillColor:color,color:color});
-
 }else{
-let color=colorPartido(m.datos[col]);
+let row=m.datos;
+let color=colorPartido(row[col]);
 m.setStyle({fillColor:color,color:color});
 }
-
+});
 });
 
+// ======================
+// BUSCADOR AUTOCOMPLETE
+// ======================
+let input=document.getElementById("buscarRecinto");
+let list=document.getElementById("autocomplete-list");
+
+input.addEventListener("input",function(){
+let val=this.value.toLowerCase();
+list.innerHTML="";
+if(!val) return;
+
+recintos.forEach(m=>{
+let nombre=m.getPopup().getContent();
+if(nombre.toLowerCase().includes(val)){
+let item=document.createElement("div");
+item.className="autocomplete-item";
+item.innerText=m.getPopup().getContent().match(/📍 (.*?)</)[1];
+item.onclick=function(){
+map.setView(m.getLatLng(),16);
+m.openPopup();
+list.innerHTML="";
+};
+list.appendChild(item);
+}
+});
+});
+
+input.addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+let first=list.firstChild;
+if(first) first.click();
+}
 });
 
 </script>
