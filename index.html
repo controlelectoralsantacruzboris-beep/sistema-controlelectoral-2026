@@ -2,221 +2,244 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Mapa Electoral SCZ 2026</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Electoral 2026</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css"/>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
 
 <style>
-html, body {
-    height: 100%;
-    margin: 0;
-}
-
-#map {
-    width: 100%;
+  #map {
     height: 100vh;
-}
+  }
 
-.filtro-container {
+  .control-box {
     position: absolute;
     top: 10px;
     right: 10px;
     z-index: 1000;
     background: white;
-    padding: 8px;
-    border-radius: 6px;
-    box-shadow: 0 0 6px rgba(0,0,0,0.3);
-}
+    padding: 10px;
+    border-radius: 8px;
+    width: 280px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  }
+
+  .control-box input {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 6px;
+  }
+
+  .suggestions {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+  }
+
+  .suggestion-item {
+    padding: 6px;
+    cursor: pointer;
+  }
+
+  .suggestion-item:hover {
+    background: #f0f0f0;
+  }
 </style>
 </head>
+
 <body>
+
+<div class="control-box">
+
+<select id="filtro">
+  <option value="TODOS">Todos</option>
+  <option value="CON2021">CON2021</option>
+  <option value="Dip20251V">Dip20251V</option>
+  <option value="20252V">20252V</option>
+</select>
+
+<input type="text" id="buscador" placeholder="Buscar recinto...">
+
+<div id="suggestions" class="suggestions"></div>
+
+</div>
 
 <div id="map"></div>
 
-<div class="filtro-container">
-    <select onchange="filtrarGanador(this.value)">
-        <option value="">Todos</option>
-        <option value="LIBRE">LIBRE</option>
-        <option value="CA">CA</option>
-    </select>
-</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function() {
-
 // ================= MAPA =================
 
-var map = L.map('map').setView([-17.7833, -63.1821], 12);
+var map = L.map('map').setView([-17.78, -63.18], 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+  attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// ================= COLORES =================
+var puntosLayer = L.layerGroup().addTo(map);
+var poligonosLayer = L.layerGroup().addTo(map);
 
-function getColorDistrito(d) {
-    const colores = {
-        1:"#e41a1c",2:"#377eb8",3:"#4daf4a",4:"#984ea3",5:"#ff7f00",
-        6:"#ffff33",7:"#a65628",8:"#f781bf",9:"#999999",10:"#66c2a5",
-        11:"#fc8d62",12:"#8da0cb",13:"#e78ac3",14:"#a6d854"
+var datosPuntos;
+var marcadorSeleccionado = null;
+
+
+// ================= FUNCIONES =================
+
+function getRadio(valor) {
+  if (!valor) return 4;
+  return Math.sqrt(valor) * 0.6;
+}
+
+function getColor(valor) {
+  if (valor > 60) return "#1a9641";
+  if (valor > 40) return "#a6d96a";
+  if (valor > 20) return "#fdae61";
+  return "#d7191c";
+}
+
+
+// ================= DIBUJAR PUNTOS =================
+
+function dibujarPuntos(filtro) {
+
+  puntosLayer.clearLayers();
+
+  L.geoJSON(datosPuntos, {
+
+    pointToLayer: function(feature, latlng) {
+
+      let radio = getRadio(feature.properties.Habilitados2026);
+
+      let valorFiltro = 0;
+      if (filtro !== "TODOS") {
+        valorFiltro = feature.properties[filtro];
+      }
+
+      return L.circleMarker(latlng, {
+        radius: radio,
+        fillColor: filtro === "TODOS" ? "#3388ff" : getColor(valorFiltro),
+        color: "#333",
+        weight: 1,
+        fillOpacity: 0.8
+      });
+    },
+
+    onEachFeature: function(feature, layer) {
+
+      layer.bindPopup(`
+        <b>${feature.properties.NombreRecinto}</b><br>
+        Distrito: ${feature.properties.Distrito}<br>
+        UV: ${feature.properties.UV}<br>
+        Habilitados: ${feature.properties.Habilitados2026}
+      `);
+
+      layer.featureId = feature.properties.ID || feature.properties.NombreRecinto;
+
+    }
+
+  }).addTo(puntosLayer);
+}
+
+
+// ================= BUSCADOR INTELIGENTE =================
+
+function normalizarTexto(texto) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function actualizarSugerencias(texto) {
+
+  let container = document.getElementById("suggestions");
+  container.innerHTML = "";
+
+  if (!texto) return;
+
+  let textoNormal = normalizarTexto(texto);
+
+  let coincidencias = datosPuntos.features.filter(f => {
+
+    let nombre = normalizarTexto(f.properties.NombreRecinto);
+
+    return nombre.includes(textoNormal);
+
+  });
+
+  coincidencias.slice(0, 15).forEach(feature => {
+
+    let div = document.createElement("div");
+    div.className = "suggestion-item";
+
+    div.innerHTML = `
+      <b>${feature.properties.NombreRecinto}</b><br>
+      <small>Distrito ${feature.properties.Distrito} - UV ${feature.properties.UV}</small>
+    `;
+
+    div.onclick = function() {
+
+      let coords = feature.geometry.coordinates;
+      let latlng = [coords[1], coords[0]];
+
+      map.setView(latlng, 16);
+
+      if (marcadorSeleccionado) {
+        map.removeLayer(marcadorSeleccionado);
+      }
+
+      marcadorSeleccionado = L.circleMarker(latlng, {
+        radius: 12,
+        color: "yellow",
+        weight: 3,
+        fillOpacity: 0.3
+      }).addTo(map);
+
+      container.innerHTML = "";
+      document.getElementById("buscador").value = feature.properties.NombreRecinto;
+
     };
-    return colores[d] || "#444";
+
+    container.appendChild(div);
+
+  });
+
 }
 
-function getColorPoblacion(p) {
-    return p > 5000 ? '#800026' :
-           p > 4000 ? '#BD0026' :
-           p > 3000 ? '#E31A1C' :
-           p > 2000 ? '#FC4E2A' :
-           p > 1000 ? '#FD8D3C' :
-           p > 500  ? '#FEB24C' :
-                      '#FED976';
-}
 
-// ================= CAPAS =================
+// ================= EVENTOS =================
 
-let capaUV = L.layerGroup().addTo(map);
-let capaRecintos = L.layerGroup().addTo(map);
-let todosRecintos = [];
+document.getElementById("buscador").addEventListener("input", function() {
+  actualizarSugerencias(this.value);
+});
 
-// ================= UV (POLIGONOS) =================
+document.getElementById("filtro").addEventListener("change", function() {
+  dibujarPuntos(this.value);
+});
 
-fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/csvjsondistritos.json')
+
+// ================= CARGAR DATOS =================
+
+fetch("puntos.geojson")
+.then(res => res.json())
+.then(data => {
+  datosPuntos = data;
+  dibujarPuntos("TODOS");
+});
+
+fetch("poligonos.geojson")
 .then(res => res.json())
 .then(data => {
 
-    data.forEach(item => {
-
-        if(!item.WKT) return;
-
-        let coordsText = item.WKT
-            .replace("POLYGON ((", "")
-            .replace("))", "");
-
-        let puntos = coordsText.split(",").map(c => {
-            let parts = c.trim().split(" ");
-            return [parseFloat(parts[1]), parseFloat(parts[0])];
-        });
-
-        L.polygon(puntos, {
-            color: "#333",
-            weight: 1,
-            fillColor: getColorPoblacion(item.poblacion),
-            fillOpacity: 0.5
-        })
-        .bindPopup(
-            "<b>Distrito:</b> " + item.distrito +
-            "<br><b>UV:</b> " + item.zona +
-            "<br><b>Población:</b> " + item.poblacion +
-            "<br><b>Circunscripción:</b> " + item.circuns
-        )
-        .addTo(capaUV);
-
-    });
-
-})
-.catch(err => console.log("Error UV:", err));
-
-// ================= RECINTOS =================
-
-fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/recintos2026.json')
-.then(res => res.json())
-.then(data => {
-
-    data.forEach(r => {
-
-        if(!r.Latitud || !r.Longitud) return;
-
-        let distritoNumero = 0;
-
-        if(r.Distrito){
-            distritoNumero = parseInt(
-                r.Distrito.replace("DISTRITO","").trim()
-            );
-        }
-
-        let habilitados = parseInt(r.Habilitados || 0);
-
-        let marker = L.circleMarker(
-            [parseFloat(r.Latitud), parseFloat(r.Longitud)],
-            {
-                radius: 7,
-                fillColor: getColorDistrito(distritoNumero),
-                color: "#000",
-                weight: 1,
-                fillOpacity: 0.9
-            }
-        );
-
-        marker.feature = {
-            properties: {
-                name: r.Recinto
-            }
-        };
-
-        marker.bindPopup(
-            "<b>"+ (r.Recinto || "-") +"</b>"+
-            "<br><b>"+ (r.Distrito || "-") +"</b>"+
-            "<br><b>Zona:</b> "+ (r.Zona || "-") +
-            "<br><b>Municipio:</b> "+ (r.Municipio || "-") +
-            "<br><b>Mesas 2026:</b> "+ (r["Cantidad Mesas 2026"] || "-") +
-            "<br><b>Habilitados:</b> "+ habilitados +
-            "<hr>"+
-            "<b>CON2021:</b> "+ (r.CON2021 || "-") +
-            "<br><b>Dip20251V:</b> "+ (r.Dip20251V || "-") +
-            "<br><b>20252V:</b> "+ (r["20252V"] || "-")
-        );
-
-        marker.addTo(capaRecintos);
-
-        todosRecintos.push({
-            marker: marker,
-            ganador: r["20252V"]
-        });
-
-    });
-
-    // ===== BUSCADOR TIPO GOOGLE =====
-
-    var searchControl = new L.Control.Search({
-        layer: capaRecintos,
-        propertyName: 'name',
-        zoom: 17,
-        marker: false,
-        autoCollapse: true,
-        textPlaceholder: 'Buscar recinto...'
-    });
-
-    searchControl.on('search:locationfound', function(e) {
-        e.layer.openPopup();
-    });
-
-    map.addControl(searchControl);
-
-})
-.catch(err => console.log("Error Recintos:", err));
-
-// ================= FILTRO POR GANADOR =================
-
-window.filtrarGanador = function(nombreGanador) {
-
-    capaRecintos.clearLayers();
-
-    todosRecintos.forEach(r => {
-
-        if(!nombreGanador || r.ganador === nombreGanador){
-            r.marker.addTo(capaRecintos);
-        }
-
-    });
-
-};
+  L.geoJSON(data, {
+    style: {
+      color: "#000",
+      weight: 1,
+      fillColor: "#ff7800",
+      fillOpacity: 0.4
+    }
+  }).addTo(poligonosLayer);
 
 });
 
