@@ -27,12 +27,12 @@ html, body { margin:0; padding:0; }
     position:absolute;
     top:10px;
     left:10px;
-    z-index:1000;
+    z-index:1100;
     background:white;
     padding:8px;
     border-radius:10px;
     box-shadow:0 0 10px rgba(0,0,0,0.2);
-    width:260px;
+    width:280px;
 }
 
 #searchInput {
@@ -41,6 +41,23 @@ html, body { margin:0; padding:0; }
     border:1px solid #ccc;
     border-radius:6px;
 }
+
+#suggestions {
+    background:white;
+    border:1px solid #ccc;
+    border-top:none;
+    max-height:200px;
+    overflow-y:auto;
+}
+
+.suggestion-item {
+    padding:6px;
+    cursor:pointer;
+}
+
+.suggestion-item:hover {
+    background:#f0f0f0;
+}
 </style>
 </head>
 <body>
@@ -48,7 +65,8 @@ html, body { margin:0; padding:0; }
 <div id="map"></div>
 
 <div id="searchBox">
-<input type="text" id="searchInput" placeholder="Buscar recinto..." />
+<input type="text" id="searchInput" placeholder="Buscar recinto..." autocomplete="off"/>
+<div id="suggestions"></div>
 </div>
 
 <div class="panel">
@@ -63,15 +81,18 @@ html, body { margin:0; padding:0; }
 
 <script>
 
+// ================= MAPA =================
 var map = L.map('map').setView([-17.7833, -63.1821], 12);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap'
 }).addTo(map);
 
-var recintosLayer = [];
+// Capas separadas
 var uvLayer = L.layerGroup().addTo(map);
+var recintosLayer = [];
 
+// ================= FUNCIONES =================
 function extraerNumeroDistrito(texto){
     if(!texto) return 0;
     var match = texto.toString().match(/\d+/);
@@ -128,16 +149,17 @@ fetch("csvjsondistritos.json")
         });
 
         var polygon = L.polygon(coords,{
-            color:"#555",
+            color:"#444",
             weight:1,
             fillColor:colorDistrito(zona.distrito),
             fillOpacity:0.15,
-            interactive:false
+            interactive:false // no bloquea clicks
         });
 
         uvLayer.addLayer(polygon);
     });
 
+    uvLayer.bringToBack(); // 🔥 siempre debajo
 });
 
 // ================= RECINTOS =================
@@ -152,7 +174,6 @@ fetch("recintos2026.json")
         if(!lat || !lng) return;
 
         var distritoNumero = extraerNumeroDistrito(r.Distrito);
-
         var habilitados = parseInt(r.Habilitados2026) || 0;
         var radio = Math.sqrt(habilitados) * 0.6;
 
@@ -186,13 +207,11 @@ fetch("recintos2026.json")
 });
 
 // ================= FILTRO =================
-document.getElementById("filtro")
-.addEventListener("change",function(){
+document.getElementById("filtro").addEventListener("change",function(){
 
     var val=this.value;
 
     recintosLayer.forEach(marker=>{
-
         if(val==="distrito"){
             marker.setStyle({
                 fillColor:colorDistrito(marker.distritoNumero)
@@ -202,31 +221,45 @@ document.getElementById("filtro")
                 fillColor:colorPartido(marker.datos[val])
             });
         }
+    });
+});
 
+// ================= BUSCADOR CON AUTOCOMPLETADO =================
+var input = document.getElementById("searchInput");
+var suggestions = document.getElementById("suggestions");
+
+input.addEventListener("input",function(){
+
+    var texto = this.value.toLowerCase();
+    suggestions.innerHTML = "";
+
+    if(texto.length < 2) return;
+
+    var resultados = recintosLayer.filter(m =>
+        m.datos.Recinto &&
+        m.datos.Recinto.toLowerCase().includes(texto)
+    ).slice(0,8); // máximo 8 sugerencias
+
+    resultados.forEach(marker=>{
+        var div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.textContent = marker.datos.Recinto + " (" + marker.datos.Distrito + ")";
+        div.onclick = function(){
+            map.setView(marker.getLatLng(),16);
+            marker.openPopup();
+            suggestions.innerHTML="";
+            input.value="";
+        };
+        suggestions.appendChild(div);
     });
 
 });
 
-// ================= BUSCADOR =================
-document.getElementById("searchInput")
-.addEventListener("keyup",function(e){
-
-    var texto=this.value.toLowerCase();
-
-    if(e.key==="Enter"){
-
-        var encontrado = recintosLayer.find(m =>
-            m.datos.Recinto &&
-            m.datos.Recinto.toLowerCase().includes(texto)
-        );
-
-        if(encontrado){
-            map.setView(encontrado.getLatLng(),16);
-            encontrado.openPopup();
-        }
-
+// cerrar sugerencias si clic fuera
+document.addEventListener("click",function(e){
+    if(!document.getElementById("searchBox").contains(e.target)){
+        suggestions.innerHTML="";
     }
-
 });
 
 </script>
