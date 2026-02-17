@@ -1,8 +1,6 @@
 <script>
 
-// ============================
-// MAPA BASE
-// ============================
+// ================= MAPA =================
 
 var map = L.map('map').setView([-17.7833, -63.1821], 12);
 
@@ -10,9 +8,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// ============================
-// COLORES POR DISTRITO
-// ============================
+// ================= COLORES DISTRITO =================
 
 function getColorDistrito(d) {
     const colores = {
@@ -23,9 +19,7 @@ function getColorDistrito(d) {
     return colores[d] || "#444";
 }
 
-// ============================
-// ESCALA POR POBLACION (UV)
-// ============================
+// ================= COLORES POBLACION UV =================
 
 function getColorPoblacion(p) {
     return p > 5000 ? '#800026' :
@@ -37,11 +31,14 @@ function getColorPoblacion(p) {
                       '#FED976';
 }
 
-// ============================
-// CAPA UV (POLIGONOS)
-// ============================
+// ================= CAPAS =================
 
 let capaUV = L.layerGroup().addTo(map);
+let capaRecintos = L.layerGroup().addTo(map);
+
+let todosRecintos = [];
+
+// ================= UV =================
 
 fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/csvjsondistritos.json')
 .then(res => res.json())
@@ -51,7 +48,6 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
 
         if(!item.WKT) return;
 
-        // Limpiar texto POLYGON
         let coordsText = item.WKT
             .replace("POLYGON ((", "")
             .replace("))", "");
@@ -61,31 +57,24 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
             return [parseFloat(parts[1]), parseFloat(parts[0])];
         });
 
-        let poligono = L.polygon(puntos, {
+        L.polygon(puntos, {
             color: "#333",
             weight: 1,
             fillColor: getColorPoblacion(item.poblacion),
-            fillOpacity: 0.55
-        });
+            fillOpacity: 0.5
+        })
+        .bindPopup(
+            "<b>Distrito:</b> " + item.distrito + "<br>" +
+            "<b>UV:</b> " + item.zona + "<br>" +
+            "<b>Población:</b> " + item.poblacion
+        )
+        .addTo(capaUV);
 
-        poligono.bindPopup(`
-            <b>Distrito:</b> ${item.distrito}<br>
-            <b>UV (Zona):</b> ${item.zona}<br>
-            <b>Población:</b> ${item.poblacion}<br>
-            <b>Circunscripción:</b> ${item.circuns}
-        `);
-
-        poligono.addTo(capaUV);
     });
 
 });
 
-// ============================
-// CAPA RECINTOS
-// ============================
-
-let capaRecintos = L.layerGroup().addTo(map);
-let listaRecintos = [];
+// ================= RECINTOS =================
 
 fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/recintos2026.json')
 .then(res => res.json())
@@ -95,52 +84,80 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
 
         if(!r.Latitud || !r.Longitud) return;
 
-        // EXTRAER NUMERO DE "DISTRITO 10"
-        let distritoNumero = parseInt(
-            r.Distrito.replace("DISTRITO","").trim()
+        let distritoNumero = 0;
+
+        if(r.Distrito){
+            distritoNumero = parseInt(
+                r.Distrito.replace("DISTRITO","").trim()
+            );
+        }
+
+        let marker = L.circleMarker(
+            [parseFloat(r.Latitud), parseFloat(r.Longitud)],
+            {
+                radius: 7,
+                fillColor: getColorDistrito(distritoNumero),
+                color: "#000",
+                weight: 1,
+                fillOpacity: 0.9
+            }
         );
 
-        let marker = L.circleMarker([r.Latitud, r.Longitud], {
-            radius: 8,
-            fillColor: getColorDistrito(distritoNumero),
-            color: "#000",
-            weight: 1,
-            fillOpacity: 0.9
-        });
+        marker.feature = {
+            properties: {
+                name: r.Nombre
+            }
+        };
 
-        marker.bindPopup(`
-            <b>${r.Nombre}</b><br>
-            ${r.Distrito}<br>
-            Dirección: ${r.Direccion}
-        `);
+        marker.bindPopup(
+            "<b>" + r.Nombre + "</b><br>" +
+            r.Distrito + "<br>" +
+            (r.Ganador ? "<b>Ganador:</b> " + r.Ganador : "")
+        );
 
         marker.addTo(capaRecintos);
 
-        listaRecintos.push({
-            nombre: r.Nombre,
-            marker: marker
+        todosRecintos.push({
+            marker: marker,
+            ganador: r.Ganador
         });
 
     });
 
+    // ===== BUSCADOR TIPO GOOGLE =====
+
+    var searchControl = new L.Control.Search({
+        layer: capaRecintos,
+        propertyName: 'name',
+        initial: false,
+        zoom: 17,
+        marker: false,
+        autoCollapse: true,
+        textPlaceholder: 'Buscar recinto...'
+    });
+
+    searchControl.on('search:locationfound', function(e) {
+        e.layer.openPopup();
+    });
+
+    map.addControl(searchControl);
+
 });
 
-// ============================
-// BUSCADOR CON PREDICCION
-// ============================
+// ================= FILTRO POR GANADOR =================
 
-var searchControl = new L.Control.Search({
-    layer: capaRecintos,
-    propertyName: 'nombre',
-    initial: false,
-    zoom: 17,
-    marker: false
-});
+function filtrarGanador(nombreGanador) {
 
-searchControl.on('search:locationfound', function(e) {
-    e.layer.openPopup();
-});
+    capaRecintos.clearLayers();
 
-map.addControl(searchControl);
+    todosRecintos.forEach(r => {
+
+        if(!nombreGanador || r.ganador === nombreGanador){
+            r.marker.addTo(capaRecintos);
+        }
+
+    });
+
+}
 
 </script>
