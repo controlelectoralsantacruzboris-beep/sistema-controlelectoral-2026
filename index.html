@@ -1,4 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Mapa Electoral SCZ 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-search@3.0.9/dist/leaflet-search.min.js"></script>
+
+<style>
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+#map {
+    width: 100%;
+    height: 100vh;
+}
+
+.filtro-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: white;
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.3);
+}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="filtro-container">
+    <select onchange="filtrarGanador(this.value)">
+        <option value="">Todos</option>
+        <option value="LIBRE">LIBRE</option>
+        <option value="CA">CA</option>
+    </select>
+</div>
+
 <script>
+
+document.addEventListener("DOMContentLoaded", function() {
 
 // ================= MAPA =================
 
@@ -8,7 +58,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// ================= COLORES DISTRITO =================
+// ================= COLORES =================
 
 function getColorDistrito(d) {
     const colores = {
@@ -18,8 +68,6 @@ function getColorDistrito(d) {
     };
     return colores[d] || "#444";
 }
-
-// ================= COLORES POBLACION UV =================
 
 function getColorPoblacion(p) {
     return p > 5000 ? '#800026' :
@@ -35,10 +83,9 @@ function getColorPoblacion(p) {
 
 let capaUV = L.layerGroup().addTo(map);
 let capaRecintos = L.layerGroup().addTo(map);
-
 let todosRecintos = [];
 
-// ================= UV =================
+// ================= UV (POLIGONOS) =================
 
 fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sistema-controlelectoral-2026/main/csvjsondistritos.json')
 .then(res => res.json())
@@ -64,15 +111,17 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
             fillOpacity: 0.5
         })
         .bindPopup(
-            "<b>Distrito:</b> " + item.distrito + "<br>" +
-            "<b>UV:</b> " + item.zona + "<br>" +
-            "<b>Población:</b> " + item.poblacion
+            "<b>Distrito:</b> " + item.distrito +
+            "<br><b>UV:</b> " + item.zona +
+            "<br><b>Población:</b> " + item.poblacion +
+            "<br><b>Circunscripción:</b> " + item.circuns
         )
         .addTo(capaUV);
 
     });
 
-});
+})
+.catch(err => console.log("Error UV:", err));
 
 // ================= RECINTOS =================
 
@@ -92,6 +141,8 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
             );
         }
 
+        let habilitados = parseInt(r.Habilitados || 0);
+
         let marker = L.circleMarker(
             [parseFloat(r.Latitud), parseFloat(r.Longitud)],
             {
@@ -105,21 +156,28 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
 
         marker.feature = {
             properties: {
-                name: r.Nombre
+                name: r.Recinto
             }
         };
 
         marker.bindPopup(
-            "<b>" + r.Nombre + "</b><br>" +
-            r.Distrito + "<br>" +
-            (r.Ganador ? "<b>Ganador:</b> " + r.Ganador : "")
+            "<b>"+ (r.Recinto || "-") +"</b>"+
+            "<br><b>"+ (r.Distrito || "-") +"</b>"+
+            "<br><b>Zona:</b> "+ (r.Zona || "-") +
+            "<br><b>Municipio:</b> "+ (r.Municipio || "-") +
+            "<br><b>Mesas 2026:</b> "+ (r["Cantidad Mesas 2026"] || "-") +
+            "<br><b>Habilitados:</b> "+ habilitados +
+            "<hr>"+
+            "<b>CON2021:</b> "+ (r.CON2021 || "-") +
+            "<br><b>Dip20251V:</b> "+ (r.Dip20251V || "-") +
+            "<br><b>20252V:</b> "+ (r["20252V"] || "-")
         );
 
         marker.addTo(capaRecintos);
 
         todosRecintos.push({
             marker: marker,
-            ganador: r.Ganador
+            ganador: r["20252V"]
         });
 
     });
@@ -129,7 +187,6 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
     var searchControl = new L.Control.Search({
         layer: capaRecintos,
         propertyName: 'name',
-        initial: false,
         zoom: 17,
         marker: false,
         autoCollapse: true,
@@ -142,11 +199,12 @@ fetch('https://raw.githubusercontent.com/controlelectoralsantacruzboris-beep/sis
 
     map.addControl(searchControl);
 
-});
+})
+.catch(err => console.log("Error Recintos:", err));
 
 // ================= FILTRO POR GANADOR =================
 
-function filtrarGanador(nombreGanador) {
+window.filtrarGanador = function(nombreGanador) {
 
     capaRecintos.clearLayers();
 
@@ -158,6 +216,11 @@ function filtrarGanador(nombreGanador) {
 
     });
 
-}
+};
+
+});
 
 </script>
+
+</body>
+</html>
