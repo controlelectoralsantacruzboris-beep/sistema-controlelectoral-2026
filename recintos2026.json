@@ -1080,7 +1080,7 @@
     "Habilitados2025": 165,
     "Habilitados2026": 192,
     "Habitantes": "Aumenta 27 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -1855,7 +1855,7 @@
     "Habilitados2025": 2147,
     "Habilitados2026": 2016,
     "Habitantes": "Disminuye 131 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -2630,7 +2630,7 @@
     "Habilitados2025": 136,
     "Habilitados2026": 161,
     "Habitantes": "Aumenta 25 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -4118,7 +4118,7 @@
     "Habilitados2025": 896,
     "Habilitados2026": 1160,
     "Habitantes": "Aumenta 264 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -4397,7 +4397,7 @@
     "Habilitados2025": 504,
     "Habilitados2026": 543,
     "Habitantes": "Aumenta 39 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -6753,7 +6753,7 @@
     "Habilitados2025": 57,
     "Habilitados2026": 55,
     "Habitantes": "Disminuye 2 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
@@ -9543,7 +9543,7 @@
     "Habilitados2025": 119,
     "Habilitados2026": 151,
     "Habitantes": "Aumenta 32 votantes",
-    "CON2021": NaN,
+    "CON2021": null,
     "Dip20251V": "LIBRE",
     "20252V": "LIBRE"
   },
