@@ -92,20 +92,16 @@ var marcadorBusqueda=null;
 // ================= COLORES PARTIDOS =================
 
 function colorPartido(valor){
-
 if(!valor) return "#999";
-
 valor=valor.toUpperCase();
-
 if(valor.includes("DEMOCRATAS")) return "green";
 if(valor.includes("PDC")) return "green";
 if(valor.includes("MAS")) return "blue";
 if(valor.includes("NULO")) return "blue";
 if(valor.includes("UNIDAD")) return "yellow";
-if(valor.includes("LIBER")) return "red";
+if(valor.includes("LIBRE")) return "red";
 if(valor.includes("UCS")) return "cyan";
 if(valor.includes("C-A")) return "orange";
-
 return "#999";
 }
 
@@ -113,32 +109,31 @@ return "#999";
 // ================= RADIO BURBUJA =================
 
 function radioRecinto(valor){
-if(!valor) return 4;
-return Math.sqrt(valor)*0.15;
+valor = Number(valor);
+if(isNaN(valor)) return 4;
+return 4 + (valor / 1000); 
 }
 
 
 // ================= COLOR DISTRITO =================
 
 function colorDistrito(d){
-var n=parseInt(d.replace(/\D/g,''));
+var n=parseInt(d.replace(/\D/g,'')) || 0;
 var colores=["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
 "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"];
 return colores[n%10];
 }
 
 
-// ================= CONVERTIR WKT A COORDS =================
+// ================= CONVERTIR WKT =================
 
 function wktToLatLng(wkt){
 
-wkt = wkt.replace("POLYGON ((","")
-         .replace("POLYGON((","")
-         .replace("))","")
+wkt = wkt.replace(/POLYGON\s*\(\(/,"")
+         .replace(/\)\)/,"")
          .trim();
 
 var coords = wkt.split(",");
-
 var latlngs = [];
 
 coords.forEach(c=>{
@@ -157,15 +152,27 @@ return latlngs;
 
 // ================= DIBUJAR DISTRITOS =================
 
-var maxPob = Math.max(...datosDistritos.map(d=>d.poblacion));
+function dibujarDistritos(){
+
+capaDistritos.clearLayers();
+
+var maxPob = 0;
+
+datosDistritos.forEach(d=>{
+if(Number(d.poblacion)>maxPob){
+maxPob = Number(d.poblacion);
+}
+});
 
 datosDistritos.forEach(d=>{
 
 if(!d.WKT) return;
+if(d.WKT.indexOf("POLYGON")==-1) return;
 
 var latlngs = wktToLatLng(d.WKT);
+if(latlngs.length==0) return;
 
-var intensidad = d.poblacion / maxPob;
+var intensidad = Number(d.poblacion)/maxPob;
 
 L.polygon(latlngs,{
 color:"#000",
@@ -179,6 +186,9 @@ fillOpacity:0.2 + intensidad*0.6
 
 });
 
+}
+
+
 // ================= DIBUJAR RECINTOS =================
 
 function dibujarRecintos(){
@@ -190,50 +200,26 @@ var fCon=document.getElementById("filtroCON2021").value;
 var fDip=document.getElementById("filtroDip").value;
 var f52=document.getElementById("filtro20252V").value;
 
-/* 🔥 SOLO UN FILTRO ACTIVO A LA VEZ */
-if(fDist!="TODOS"){
-fCon="TODOS"; fDip="TODOS"; f52="TODOS";
-}
-if(fCon!="TODOS"){
-fDist="TODOS"; fDip="TODOS"; f52="TODOS";
-}
-if(fDip!="TODOS"){
-fDist="TODOS"; fCon="TODOS"; f52="TODOS";
-}
-if(f52!="TODOS"){
-fDist="TODOS"; fCon="TODOS"; fDip="TODOS";
-}
-
 datosRecintos.forEach(r=>{
+
+if(fDist!="TODOS" && r.Distrito!=fDist) return;
+if(fCon!="TODOS" && r.CON2021!=fCon) return;
+if(fDip!="TODOS" && r.Dip20251V!=fDip) return;
+if(f52!="TODOS" && r["20252V"]!=f52) return;
 
 var color="#3388ff";
 
-if(fDist!="TODOS"){
-if(r.Distrito!=fDist) return;
-color=colorDistrito(r.Distrito);
-}
-
-if(fCon!="TODOS"){
-if(r.CON2021!=fCon) return;
-color=colorPartido(r.CON2021);
-}
-
-if(fDip!="TODOS"){
-if(r.Dip20251V!=fDip) return;
-color=colorPartido(r.Dip20251V);
-}
-
-if(f52!="TODOS"){
-if(r["20252V"]!=f52) return;
-color=colorPartido(r["20252V"]);
-}
+if(fDist!="TODOS") color=colorDistrito(r.Distrito);
+if(fCon!="TODOS") color=colorPartido(r.CON2021);
+if(fDip!="TODOS") color=colorPartido(r.Dip20251V);
+if(f52!="TODOS") color=colorPartido(r["20252V"]);
 
 L.circleMarker([r.Latitud,r.Longitud],{
 radius:radioRecinto(r.Habilitados2026),
 fillColor:color,
-color:"#333",
+color:"#222",
 weight:1,
-fillOpacity:0.8
+fillOpacity:0.85
 })
 .bindPopup(`
 <b>${r.Recinto}</b><br>
@@ -255,7 +241,7 @@ Dip20251V: ${r.Dip20251V}<br>
 }
 
 
-// ================= BUSCADOR PREDICTIVO =================
+// ================= BUSCADOR =================
 
 function normalizar(t){
 return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
@@ -266,7 +252,6 @@ document.getElementById("buscador").addEventListener("input",function(){
 var texto=normalizar(this.value);
 var cont=document.getElementById("suggestions");
 cont.innerHTML="";
-
 if(texto.length<2) return;
 
 var coincidencias=datosRecintos.filter(r=>
@@ -327,8 +312,14 @@ dibujarDistritos();
 });
 
 
+// 🔥 SOLO UN FILTRO ACTIVO
+document.querySelectorAll("select").forEach(select=>{
+select.addEventListener("change",function(){
 document.querySelectorAll("select").forEach(s=>{
-s.addEventListener("change",dibujarRecintos);
+if(s!==this) s.value="TODOS";
+});
+dibujarRecintos();
+});
 });
 
 </script>
