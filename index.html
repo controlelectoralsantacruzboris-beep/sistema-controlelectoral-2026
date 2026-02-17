@@ -3,56 +3,65 @@
 <head>
 <meta charset="utf-8" />
 <title>Mapa Electoral 2026</title>
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-  #map { height: 100vh; }
+#map { height: 100vh; }
 
-  .control-box {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    width: 300px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-  }
+.panel {
+position:absolute;
+top:10px;
+right:10px;
+z-index:1000;
+background:white;
+padding:10px;
+border-radius:8px;
+width:320px;
+box-shadow:0 4px 12px rgba(0,0,0,0.25);
+font-family:Arial;
+}
 
-  .control-box input {
-    width: 100%;
-    padding: 6px;
-    margin-bottom: 6px;
-  }
+.panel select, .panel input{
+width:100%;
+margin-bottom:6px;
+padding:5px;
+}
 
-  .suggestions {
-    max-height: 250px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-  }
+.suggestions{
+max-height:200px;
+overflow-y:auto;
+border:1px solid #ccc;
+}
 
-  .suggestion-item {
-    padding: 6px;
-    cursor: pointer;
-  }
+.suggestion-item{
+padding:6px;
+cursor:pointer;
+}
 
-  .suggestion-item:hover {
-    background: #f0f0f0;
-  }
+.suggestion-item:hover{
+background:#f0f0f0;
+}
 </style>
 </head>
 
 <body>
 
-<div class="control-box">
+<div class="panel">
 
-<select id="filtro">
-  <option value="TODOS">Todos</option>
-  <option value="CON2021">CON2021</option>
-  <option value="Dip20251V">Dip20251V</option>
-  <option value="20252V">20252V</option>
+<select id="filtroDistrito">
+<option value="TODOS">Filtro Distrito</option>
+</select>
+
+<select id="filtroCON2021">
+<option value="TODOS">Filtro CON2021</option>
+</select>
+
+<select id="filtroDip">
+<option value="TODOS">Filtro Dip20251V</option>
+</select>
+
+<select id="filtro20252V">
+<option value="TODOS">Filtro 20252V</option>
 </select>
 
 <input type="text" id="buscador" placeholder="Buscar recinto...">
@@ -66,182 +75,219 @@
 
 <script>
 
-// ================= MAPA =================
+var map = L.map('map').setView([-17.78,-63.18],12);
 
-var map = L.map('map').setView([-17.78, -63.18], 12);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap'
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
 }).addTo(map);
 
-var puntosLayer = L.layerGroup().addTo(map);
-var poligonosLayer = L.layerGroup().addTo(map);
+var capaRecintos = L.layerGroup().addTo(map);
+var capaDistritos = L.layerGroup().addTo(map);
 
-var datosPuntos;
-var marcadorSeleccionado = null;
-
-
-// ================= FUNCIONES =================
-
-function getRadio(valor) {
-  if (!valor) return 4;
-  return Math.sqrt(valor) * 0.6;
-}
-
-function getColor(valor) {
-  if (valor > 60) return "#1a9641";
-  if (valor > 40) return "#a6d96a";
-  if (valor > 20) return "#fdae61";
-  return "#d7191c";
-}
-
-function normalizarTexto(texto) {
-  return texto.toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
+var datosRecintos=[];
+var datosDistritos=[];
+var marcadorBusqueda=null;
 
 
-// ================= DIBUJAR PUNTOS =================
+// ================= COLORES PARTIDOS =================
 
-function dibujarPuntos(filtro) {
+function colorPartido(valor){
 
-  puntosLayer.clearLayers();
+if(!valor) return "#999";
 
-  L.geoJSON(datosPuntos, {
+valor=valor.toUpperCase();
 
-    pointToLayer: function(feature, latlng) {
+if(valor.includes("DEMOCRATAS")) return "green";
+if(valor.includes("PDC")) return "green";
+if(valor.includes("MAS")) return "blue";
+if(valor.includes("NULO")) return "blue";
+if(valor.includes("UNIDAD")) return "yellow";
+if(valor.includes("LIBER")) return "red";
+if(valor.includes("UCS")) return "cyan";
+if(valor.includes("C-A")) return "orange";
 
-      let radio = getRadio(feature.properties.Habilitados2026);
-
-      let valorFiltro = 0;
-      if (filtro !== "TODOS") {
-        valorFiltro = feature.properties[filtro];
-      }
-
-      return L.circleMarker(latlng, {
-        radius: radio,
-        fillColor: filtro === "TODOS" ? "#3388ff" : getColor(valorFiltro),
-        color: "#333",
-        weight: 1,
-        fillOpacity: 0.8
-      });
-    },
-
-    onEachFeature: function(feature, layer) {
-
-      layer.bindPopup(`
-        <b>${feature.properties.Recinto}</b><br>
-        Distrito: ${feature.properties.Distrito}<br>
-        UV: ${feature.properties.UV}<br>
-        Habilitados: ${feature.properties.Habilitados2026}
-      `);
-
-    }
-
-  }).addTo(puntosLayer);
+return "#999";
 }
 
 
-// ================= BUSCADOR GOOGLE STYLE =================
+// ================= RADIO BURBUJA =================
 
-function actualizarSugerencias(texto) {
+function radioRecinto(valor){
+if(!valor) return 4;
+return Math.sqrt(valor)*0.15;
+}
 
-  let container = document.getElementById("suggestions");
-  container.innerHTML = "";
 
-  if (!texto || !datosPuntos) return;
+// ================= COLOR DISTRITO =================
 
-  let textoNormal = normalizarTexto(texto);
+function colorDistrito(d){
+var n=parseInt(d.replace(/\D/g,''));
+var colores=["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+"#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"];
+return colores[n%10];
+}
 
-  let coincidencias = datosPuntos.features.filter(f => {
 
-    let nombre = normalizarTexto(f.properties.Recinto);
-    return nombre.includes(textoNormal);
+// ================= CONVERTIR WKT A COORDS =================
 
-  });
+function wktToLatLng(wkt){
+var coords=wkt.replace("POLYGON ((","")
+.replace("))","")
+.split(",");
 
-  coincidencias.slice(0, 20).forEach(feature => {
+var latlngs=[];
 
-    let div = document.createElement("div");
-    div.className = "suggestion-item";
+coords.forEach(c=>{
+var parts=c.trim().split(" ");
+latlngs.push([parseFloat(parts[1]),parseFloat(parts[0])]);
+});
 
-    div.innerHTML = `
-      <b>${feature.properties.Recinto}</b><br>
-      <small>Distrito ${feature.properties.Distrito} - UV ${feature.properties.UV}</small>
-    `;
+return latlngs;
+}
 
-    div.onclick = function() {
 
-      let coords = feature.geometry.coordinates;
-      let latlng = [coords[1], coords[0]];
+// ================= DIBUJAR DISTRITOS =================
 
-      map.setView(latlng, 16);
+function dibujarDistritos(){
 
-      if (marcadorSeleccionado) {
-        map.removeLayer(marcadorSeleccionado);
-      }
+capaDistritos.clearLayers();
 
-      marcadorSeleccionado = L.circleMarker(latlng, {
-        radius: 14,
-        color: "yellow",
-        weight: 3,
-        fillOpacity: 0.3
-      }).addTo(map);
+datosDistritos.forEach(d=>{
 
-      container.innerHTML = "";
-      document.getElementById("buscador").value = feature.properties.Recinto;
+var latlngs=wktToLatLng(d.WKT);
 
-    };
+var intensidad=d.poblacion/1000;
 
-    container.appendChild(div);
+L.polygon(latlngs,{
+color:"#000",
+weight:1,
+fillColor:"#ff0000",
+fillOpacity:Math.min(intensidad,0.8)
+})
+.bindPopup("Distrito "+d.distrito+"<br>Población: "+d.poblacion)
+.addTo(capaDistritos);
 
-  });
+});
 
 }
 
 
-// ================= EVENTOS =================
+// ================= DIBUJAR RECINTOS =================
 
-document.getElementById("buscador")
-  .addEventListener("input", function() {
-    actualizarSugerencias(this.value);
-  });
+function dibujarRecintos(){
 
-document.getElementById("filtro")
-  .addEventListener("change", function() {
-    dibujarPuntos(this.value);
-  });
+capaRecintos.clearLayers();
+
+var fDist=document.getElementById("filtroDistrito").value;
+var fCon=document.getElementById("filtroCON2021").value;
+var fDip=document.getElementById("filtroDip").value;
+var f52=document.getElementById("filtro20252V").value;
+
+datosRecintos.forEach(r=>{
+
+if(fDist!="TODOS" && r.Distrito!=fDist) return;
+if(fCon!="TODOS" && r.CON2021!=fCon) return;
+if(fDip!="TODOS" && r.Dip20251V!=fDip) return;
+if(f52!="TODOS" && r["20252V"]!=f52) return;
+
+var color="#3388ff";
+
+if(fDist!="TODOS") color=colorDistrito(r.Distrito);
+if(fCon!="TODOS") color=colorPartido(r.CON2021);
+if(fDip!="TODOS") color=colorPartido(r.Dip20251V);
+if(f52!="TODOS") color=colorPartido(r["20252V"]);
+
+L.circleMarker([r.Latitud,r.Longitud],{
+radius:radioRecinto(r.Habilitados2026),
+fillColor:color,
+color:"#333",
+weight:1,
+fillOpacity:0.8
+})
+.bindPopup("<b>"+r.Recinto+"</b><br>"+r.Distrito+
+"<br>Habilitados: "+r.Habilitados2026)
+.addTo(capaRecintos);
+
+});
+
+}
 
 
-// ================= CARGAR RECINTOS =================
+// ================= BUSCADOR PREDICTIVO =================
+
+function normalizar(t){
+return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+document.getElementById("buscador").addEventListener("input",function(){
+
+var texto=normalizar(this.value);
+var cont=document.getElementById("suggestions");
+cont.innerHTML="";
+
+if(texto.length<2) return;
+
+var coincidencias=datosRecintos.filter(r=>
+normalizar(r.Recinto).includes(texto));
+
+coincidencias.slice(0,15).forEach(r=>{
+
+var div=document.createElement("div");
+div.className="suggestion-item";
+div.innerHTML="<b>"+r.Recinto+"</b><br><small>"+r.Distrito+"</small>";
+
+div.onclick=function(){
+
+map.setView([r.Latitud,r.Longitud],16);
+
+if(marcadorBusqueda) map.removeLayer(marcadorBusqueda);
+
+marcadorBusqueda=L.circleMarker([r.Latitud,r.Longitud],{
+radius:15,color:"yellow",weight:3
+}).addTo(map);
+
+cont.innerHTML="";
+};
+
+cont.appendChild(div);
+
+});
+
+});
+
+
+// ================= CARGAR DATOS =================
 
 fetch("recintos2026.json")
-.then(res => res.json())
-.then(data => {
-  datosPuntos = data;
-  dibujarPuntos("TODOS");
-})
-.catch(error => console.error("Error cargando recintos:", error));
+.then(res=>res.json())
+.then(data=>{
+datosRecintos=data;
 
+var distritosUnicos=[...new Set(data.map(r=>r.Distrito))];
+var select=document.getElementById("filtroDistrito");
 
-// ================= CARGAR POLIGONOS =================
+distritosUnicos.forEach(d=>{
+var op=document.createElement("option");
+op.value=d;
+op.text=d;
+select.appendChild(op);
+});
+
+dibujarRecintos();
+});
+
 
 fetch("csvjsondistritos.json")
-.then(res => res.json())
-.then(data => {
+.then(res=>res.json())
+.then(data=>{
+datosDistritos=data;
+dibujarDistritos();
+});
 
-  L.geoJSON(data, {
-    style: {
-      color: "#000",
-      weight: 1,
-      fillColor: "#ff7800",
-      fillOpacity: 0.4
-    }
-  }).addTo(poligonosLayer);
 
-})
-.catch(error => console.error("Error cargando distritos:", error));
+document.querySelectorAll("select").forEach(s=>{
+s.addEventListener("change",dibujarRecintos);
+});
 
 </script>
 
