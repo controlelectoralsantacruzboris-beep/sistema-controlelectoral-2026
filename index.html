@@ -57,10 +57,11 @@ background:#f0f0f0;
 
 <div class="controls">
 <input type="text" id="searchInput" placeholder="Buscar recinto...">
-<select id="filtroDistrito"><option value="">Filtrar Distrito</option></select>
-<select id="filtroCON2021"><option value="">Filtrar CON2021</option></select>
-<select id="filtroDip20251V"><option value="">Filtrar Dip20251V</option></select>
-<select id="filtro20252V"><option value="">Filtrar 20252V</option></select>
+
+<select id="filtroGeneral">
+<option value="">Seleccionar filtro</option>
+</select>
+
 </div>
 
 <div id="suggestions" class="suggestions"></div>
@@ -101,20 +102,29 @@ fetch("uv.geojson")
 .then(r=>r.json())
 .then(data=>{
 
-let maxPob = Math.max(...data.features.map(f=>Number(f.properties.poblacion)||0));
-if(maxPob===0) maxPob=1;
-
 L.geoJSON(data,{
 style:function(feature){
 
 let pob = Number(feature.properties.poblacion)||0;
-let intensidad = pob/maxPob;
+let opacity = 0.2;
+
+if(pob >= 0 && pob <= 1000){
+    opacity = 0.2;
+}else if(pob <= 4500){
+    opacity = 0.4;
+}else if(pob <= 8000){
+    opacity = 0.6;
+}else if(pob <= 13000){
+    opacity = 0.8;
+}else{
+    opacity = 1.0;
+}
 
 return{
 color:"#444",
 weight:1,
 fillColor:"#ff0000",
-fillOpacity:0.15 + intensidad*0.5
+fillOpacity:opacity
 };
 
 },
@@ -183,10 +193,7 @@ markers.push({data:d, marker:marker});
 
 });
 
-llenarSelect("filtroDistrito", distritosSet);
-llenarSelect("filtroCON2021", conSet);
-llenarSelect("filtroDip20251V", dipSet);
-llenarSelect("filtro20252V", v2025Set);
+llenarFiltroGeneral(distritosSet, conSet, dipSet, v2025Set);
 
 centrarMapa();
 aplicarFiltros();
@@ -197,16 +204,46 @@ aplicarFiltros();
 // FUNCIONES
 // =======================
 
-function llenarSelect(id,set){
-let select=document.getElementById(id);
-set.forEach(v=>{
+function llenarFiltroGeneral(distritos, con, dip, v2025){
+
+let select = document.getElementById("filtroGeneral");
+
+distritos.forEach(v=>{
 if(v){
 let opt=document.createElement("option");
-opt.value=v;
-opt.text=v;
+opt.value="Distrito|"+v;
+opt.text="Distrito: "+v;
 select.appendChild(opt);
 }
 });
+
+con.forEach(v=>{
+if(v){
+let opt=document.createElement("option");
+opt.value="CON2021|"+v;
+opt.text="CON2021: "+v;
+select.appendChild(opt);
+}
+});
+
+dip.forEach(v=>{
+if(v){
+let opt=document.createElement("option");
+opt.value="Dip20251V|"+v;
+opt.text="Dip20251V: "+v;
+select.appendChild(opt);
+}
+});
+
+v2025.forEach(v=>{
+if(v){
+let opt=document.createElement("option");
+opt.value="20252V|"+v;
+opt.text="20252V: "+v;
+select.appendChild(opt);
+}
+});
+
 }
 
 function centrarMapa(){
@@ -214,21 +251,22 @@ let group=L.featureGroup(markers.map(m=>m.marker));
 map.fitBounds(group.getBounds());
 }
 
-document.querySelectorAll("select").forEach(sel=>{
-sel.addEventListener("change",function(){
-document.querySelectorAll("select").forEach(s=>{ if(s!==this) s.value=""; });
-aplicarFiltros();
-});
-});
+document.getElementById("filtroGeneral").addEventListener("change", aplicarFiltros);
 
 function aplicarFiltros(){
 
 capaRecintos.clearLayers();
 
-let fDistrito=document.getElementById("filtroDistrito").value;
-let fCON=document.getElementById("filtroCON2021").value;
-let fDip=document.getElementById("filtroDip20251V").value;
-let f2025=document.getElementById("filtro20252V").value;
+let filtro = document.getElementById("filtroGeneral").value;
+
+let tipo = null;
+let valor = null;
+
+if(filtro){
+let partes = filtro.split("|");
+tipo = partes[0];
+valor = partes[1];
+}
 
 markers.forEach(obj=>{
 
@@ -236,21 +274,14 @@ let d=obj.data;
 let mostrar=true;
 let color="#007bff";
 
-if(fDistrito && d.Distrito!==fDistrito) mostrar=false;
+if(tipo && valor){
 
-if(fCON){
-if(d.CON2021!==fCON) mostrar=false;
-color=colorPartido(d.CON2021);
+if(d[tipo] != valor){
+mostrar=false;
+}else{
+color = colorPartido(d[tipo]);
 }
 
-if(fDip){
-if(d.Dip20251V!==fDip) mostrar=false;
-color=colorPartido(d.Dip20251V);
-}
-
-if(f2025){
-if(d["20252V"]!==f2025) mostrar=false;
-color=colorPartido(d["20252V"]);
 }
 
 if(mostrar){
