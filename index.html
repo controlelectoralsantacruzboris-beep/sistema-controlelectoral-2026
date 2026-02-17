@@ -7,9 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-  #map {
-    height: 100vh;
-  }
+  #map { height: 100vh; }
 
   .control-box {
     position: absolute;
@@ -19,7 +17,7 @@
     background: white;
     padding: 10px;
     border-radius: 8px;
-    width: 280px;
+    width: 300px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.2);
   }
 
@@ -30,7 +28,7 @@
   }
 
   .suggestions {
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
     border: 1px solid #ddd;
   }
@@ -58,7 +56,6 @@
 </select>
 
 <input type="text" id="buscador" placeholder="Buscar recinto...">
-
 <div id="suggestions" class="suggestions"></div>
 
 </div>
@@ -98,6 +95,12 @@ function getColor(valor) {
   return "#d7191c";
 }
 
+function normalizarTexto(texto) {
+  return texto.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 
 // ================= DIBUJAR PUNTOS =================
 
@@ -128,13 +131,11 @@ function dibujarPuntos(filtro) {
     onEachFeature: function(feature, layer) {
 
       layer.bindPopup(`
-        <b>${feature.properties.NombreRecinto}</b><br>
+        <b>${feature.properties.Recinto}</b><br>
         Distrito: ${feature.properties.Distrito}<br>
         UV: ${feature.properties.UV}<br>
         Habilitados: ${feature.properties.Habilitados2026}
       `);
-
-      layer.featureId = feature.properties.ID || feature.properties.NombreRecinto;
 
     }
 
@@ -142,39 +143,31 @@ function dibujarPuntos(filtro) {
 }
 
 
-// ================= BUSCADOR INTELIGENTE =================
-
-function normalizarTexto(texto) {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
+// ================= BUSCADOR GOOGLE STYLE =================
 
 function actualizarSugerencias(texto) {
 
   let container = document.getElementById("suggestions");
   container.innerHTML = "";
 
-  if (!texto) return;
+  if (!texto || !datosPuntos) return;
 
   let textoNormal = normalizarTexto(texto);
 
   let coincidencias = datosPuntos.features.filter(f => {
 
-    let nombre = normalizarTexto(f.properties.NombreRecinto);
-
+    let nombre = normalizarTexto(f.properties.Recinto);
     return nombre.includes(textoNormal);
 
   });
 
-  coincidencias.slice(0, 15).forEach(feature => {
+  coincidencias.slice(0, 20).forEach(feature => {
 
     let div = document.createElement("div");
     div.className = "suggestion-item";
 
     div.innerHTML = `
-      <b>${feature.properties.NombreRecinto}</b><br>
+      <b>${feature.properties.Recinto}</b><br>
       <small>Distrito ${feature.properties.Distrito} - UV ${feature.properties.UV}</small>
     `;
 
@@ -190,14 +183,14 @@ function actualizarSugerencias(texto) {
       }
 
       marcadorSeleccionado = L.circleMarker(latlng, {
-        radius: 12,
+        radius: 14,
         color: "yellow",
         weight: 3,
         fillOpacity: 0.3
       }).addTo(map);
 
       container.innerHTML = "";
-      document.getElementById("buscador").value = feature.properties.NombreRecinto;
+      document.getElementById("buscador").value = feature.properties.Recinto;
 
     };
 
@@ -210,25 +203,31 @@ function actualizarSugerencias(texto) {
 
 // ================= EVENTOS =================
 
-document.getElementById("buscador").addEventListener("input", function() {
-  actualizarSugerencias(this.value);
-});
+document.getElementById("buscador")
+  .addEventListener("input", function() {
+    actualizarSugerencias(this.value);
+  });
 
-document.getElementById("filtro").addEventListener("change", function() {
-  dibujarPuntos(this.value);
-});
+document.getElementById("filtro")
+  .addEventListener("change", function() {
+    dibujarPuntos(this.value);
+  });
 
 
-// ================= CARGAR DATOS =================
+// ================= CARGAR RECINTOS =================
 
-fetch("puntos.geojson")
+fetch("recintos2026.json")
 .then(res => res.json())
 .then(data => {
   datosPuntos = data;
   dibujarPuntos("TODOS");
-});
+})
+.catch(error => console.error("Error cargando recintos:", error));
 
-fetch("poligonos.geojson")
+
+// ================= CARGAR POLIGONOS =================
+
+fetch("csvjsondistritos.json")
 .then(res => res.json())
 .then(data => {
 
@@ -241,7 +240,8 @@ fetch("poligonos.geojson")
     }
   }).addTo(poligonosLayer);
 
-});
+})
+.catch(error => console.error("Error cargando distritos:", error));
 
 </script>
 
