@@ -78,7 +78,7 @@ var capaDistritos = L.layerGroup().addTo(map);
 
 var markers = [];
 
-// ===== COLORES =====
+// ===== COLORES PARTIDOS =====
 function colorPartido(p){
 if(!p) return "#007bff";
 p = p.toUpperCase();
@@ -92,6 +92,44 @@ if(p.includes("UCS")) return "cyan";
 if(p.includes("C-A")) return "orange";
 return "#007bff";
 }
+
+// =======================
+// CARGAR POLIGONOS GEOJSON
+// =======================
+
+fetch("uv.geojson")
+.then(r=>r.json())
+.then(data=>{
+
+let maxPob = Math.max(...data.features.map(f=>Number(f.properties.poblacion)||0));
+if(maxPob===0) maxPob=1;
+
+L.geoJSON(data,{
+style:function(feature){
+
+let pob = Number(feature.properties.poblacion)||0;
+let intensidad = pob/maxPob;
+
+return{
+color:"#444",
+weight:1,
+fillColor:"#ff0000",
+fillOpacity:0.15 + intensidad*0.5
+};
+
+},
+onEachFeature:function(feature,layer){
+layer.bindPopup(`
+<b>Zona:</b> ${feature.properties.zona || ""}<br>
+<b>Distrito:</b> ${feature.properties.distrito || ""}<br>
+<b>Población:</b> ${feature.properties.poblacion || 0}
+`);
+}
+}).addTo(capaDistritos);
+
+capaDistritos.bringToBack();
+
+});
 
 // =======================
 // CARGAR RECINTOS
@@ -152,59 +190,6 @@ llenarSelect("filtro20252V", v2025Set);
 
 centrarMapa();
 aplicarFiltros();
-
-});
-
-// =======================
-// CARGAR POLIGONOS WKT
-// =======================
-
-fetch("csvjsondistritos.json")
-.then(r=>r.json())
-.then(data=>{
-
-data.forEach(d=>{
-
-if(!d.WKT) return;
-
-try{
-
-let limpio = d.WKT
-.replace("MULTIPOLYGON(((","")
-.replace("POLYGON((","")
-.replace(")))","")
-.replace("))","");
-
-let partes = limpio.split("),(");
-
-partes.forEach(parte=>{
-
-let coords = parte.split(",");
-let latlngs=[];
-
-coords.forEach(c=>{
-let p=c.trim().split(/\s+/);
-if(p.length>=2){
-latlngs.push([parseFloat(p[1]),parseFloat(p[0])]);
-}
-});
-
-if(latlngs.length>2){
-L.polygon(latlngs,{
-color:"#444",
-weight:1,
-fillColor:"#ff0000",
-fillOpacity:0.12
-}).addTo(capaDistritos);
-}
-
-});
-
-}catch(e){}
-
-});
-
-capaDistritos.bringToBack();
 
 });
 
@@ -277,6 +262,7 @@ obj.marker.addTo(capaRecintos);
 
 }
 
+// ===== BUSCADOR =====
 var input=document.getElementById("searchInput");
 var suggestions=document.getElementById("suggestions");
 
