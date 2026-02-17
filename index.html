@@ -49,62 +49,33 @@ box-shadow:0 0 10px rgba(0,0,0,0.3);
 width:320px;
 text-align:center;
 }
-
-#autocomplete-list{
-position:absolute;
-background:white;
-border:1px solid #ccc;
-max-height:200px;
-overflow-y:auto;
-width:100%;
-z-index:2000;
-}
-
-.autocomplete-item{
-padding:6px;
-cursor:pointer;
-}
-.autocomplete-item:hover{
-background:#f0f0f0;
-}
 </style>
 </head>
 <body>
 
 <div id="controls">
-
 <select id="filtro">
 <option value="Habilitados2026">Habilitados2026</option>
 <option value="CON2021">CON2021</option>
 <option value="Dip20251V">Dip20251V</option>
 <option value="20252V">20252V</option>
-</select><br><br>
-
-<input type="text" id="buscarRecinto" placeholder="Buscar recinto...">
-<div id="autocomplete-list"></div>
-
+</select>
 <div style="margin-top:8px;font-weight:bold;">
 INFORMACION BORIS RAMIREZ
 </div>
-
 </div>
 
 <div id="map"></div>
 
 <div id="dashboard">
 <h3>📊 Dashboard Electoral</h3>
-
 <b>Total Recintos:</b>
 <div id="totalRecintos">0</div>
-
 <b>Total Habilitados 2026:</b>
 <div id="totalHabilitados">0</div>
-
 <hr>
-
 <b>🏆 Ranking Recintos</b>
 <div id="rankingRecintos"></div>
-
 </div>
 
 <script>
@@ -116,15 +87,12 @@ var layerUV=L.layerGroup().addTo(map);
 var layerRecintos=L.layerGroup().addTo(map);
 
 var recintos=[];
-var nombresRecintos=[];
 
 // ===== COLORES =====
 function colorDistrito(numero){
-let colores=[
-"#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+let colores=["#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
 "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf",
-"#8B0000","#006400","#00008B","#FF8C00","#4B0082"
-];
+"#8B0000","#006400","#00008B","#FF8C00","#4B0082"];
 return colores[(numero-1)%colores.length];
 }
 
@@ -186,29 +154,34 @@ poly.addTo(layerUV);
 
 // ===== CARGAR RECINTOS =====
 fetch("recintos2026.json")
-.then(res=>res.json())
-.then(json=>{
+.then(res => res.json())
+.then(json => {
 
-json.forEach(row=>{
-if(!row.Latitud||!row.Longitud) return;
+console.log("Recintos cargados:", json.length);
 
-let hab=Number(row.Habilitados2026)||0;
-let radio=Math.max(5,Math.sqrt(hab)/3);
+let bounds = [];
 
-let distritoNum=extraerNumeroDistrito(row.Distrito);
-let color=distritoNum?colorDistrito(distritoNum):"#FFD700";
+json.forEach(row => {
 
-let marker=L.circleMarker(
-[row.Latitud,row.Longitud],
-{
-radius:radio,
-fillColor:color,
-color:color,
-fillOpacity:0.9
-}
-).addTo(layerRecintos);
+let lat = parseFloat(row.Latitud);
+let lng = parseFloat(row.Longitud);
 
-marker.datos=row;
+if (isNaN(lat) || isNaN(lng)) return;
+
+let hab = Number(row.Habilitados2026) || 0;
+let radio = Math.max(5, Math.sqrt(hab) / 3);
+
+let distritoNum = extraerNumeroDistrito(row.Distrito);
+let color = distritoNum ? colorDistrito(distritoNum) : "#FFD700";
+
+let marker = L.circleMarker([lat, lng], {
+radius: radio,
+fillColor: color,
+color: color,
+fillOpacity: 0.9
+}).addTo(layerRecintos);
+
+marker.datos = row;
 
 marker.bindPopup(`
 <b>📍 ${row.Recinto}</b><br><br>
@@ -223,10 +196,19 @@ marker.bindPopup(`
 `);
 
 recintos.push(marker);
-nombresRecintos.push(row.Recinto);
+bounds.push([lat, lng]);
+
 });
 
+if (bounds.length > 0) {
+map.fitBounds(bounds);
+}
+
 actualizarDashboard();
+
+})
+.catch(error => {
+console.error("Error cargando recintos:", error);
 });
 
 // ===== DASHBOARD =====
