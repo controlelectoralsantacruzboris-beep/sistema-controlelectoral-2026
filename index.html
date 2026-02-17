@@ -84,13 +84,11 @@ attribution:'© OpenStreetMap'
 var capaDistritos = L.layerGroup().addTo(map);
 var capaRecintos = L.layerGroup().addTo(map);
 
-/* 🔥 aseguramos que recintos estén encima */
-capaRecintos.bringToFront();
+capaDistritos.bringToBack();
 
 var datosRecintos=[];
 var datosDistritos=[];
 var marcadorBusqueda=null;
-var filtroActivo=null;
 
 
 // ================= COLORES =================
@@ -98,11 +96,14 @@ var filtroActivo=null;
 function colorPartido(valor){
 if(!valor) return "#999";
 valor=valor.toUpperCase();
-if(valor.includes("MAS")) return "blue";
-if(valor.includes("UNIDAD")) return "yellow";
-if(valor.includes("LIBRE")) return "red";
-if(valor.includes("UCS")) return "cyan";
 if(valor.includes("DEMOCRATAS")) return "green";
+if(valor.includes("PDC")) return "green";
+if(valor.includes("MAS")) return "blue";
+if(valor.includes("NULO")) return "blue";
+if(valor.includes("UNIDAD")) return "yellow";
+if(valor.includes("LIBER")) return "red";
+if(valor.includes("UCS")) return "cyan";
+if(valor.includes("C-A")) return "orange";
 return "#999";
 }
 
@@ -115,24 +116,23 @@ return colores[n%10];
 }
 
 
-// ================= RADIO BURBUJA =================
+// ================= RADIO =================
 
 function radioRecinto(valor){
 valor = Number(valor);
 if(isNaN(valor)) return 4;
-return 4 + (valor/800); 
+return 5 + (valor/1000);
 }
 
 
-// ================= WKT SOPORTA POLYGON Y MULTIPOLYGON =================
+// ================= WKT SIMPLE =================
 
 function wktToLatLng(wkt){
 
-wkt = wkt.replace("MULTIPOLYGON(((","")
-         .replace("POLYGON ((","")
-         .replace("POLYGON((","")
-         .replace(")))","")
-         .replace("))","")
+wkt = wkt.replace(/MULTIPOLYGON\s*\(\(\(/,"")
+         .replace(/POLYGON\s*\(\(/,"")
+         .replace(/\)\)\)/,"")
+         .replace(/\)\)/,"")
          .trim();
 
 var coords = wkt.split(",");
@@ -158,13 +158,9 @@ function dibujarDistritos(){
 
 capaDistritos.clearLayers();
 
-var maxPob=0;
+if(datosDistritos.length===0) return;
 
-datosDistritos.forEach(d=>{
-if(Number(d.poblacion)>maxPob){
-maxPob=Number(d.poblacion);
-}
-});
+var maxPob = Math.max(...datosDistritos.map(d=>Number(d.poblacion)||0));
 
 datosDistritos.forEach(d=>{
 
@@ -173,7 +169,7 @@ if(!d.WKT) return;
 var latlngs = wktToLatLng(d.WKT);
 if(latlngs.length<3) return;
 
-var intensidad = Number(d.poblacion)/maxPob;
+var intensidad = (Number(d.poblacion)||0)/maxPob;
 
 L.polygon(latlngs,{
 color:"#000",
@@ -185,10 +181,7 @@ fillOpacity:0.15 + intensidad*0.5
 
 });
 
-/* 🔥 aseguramos orden correcto */
 capaDistritos.bringToBack();
-capaRecintos.bringToFront();
-
 }
 
 
@@ -198,19 +191,24 @@ function dibujarRecintos(){
 
 capaRecintos.clearLayers();
 
+var fDist=document.getElementById("filtroDistrito").value;
+var fCon=document.getElementById("filtroCON2021").value;
+var fDip=document.getElementById("filtroDip").value;
+var f52=document.getElementById("filtro20252V").value;
+
 datosRecintos.forEach(r=>{
 
-if(filtroActivo==="Distrito" && r.Distrito!=document.getElementById("filtroDistrito").value) return;
-if(filtroActivo==="CON2021" && r.CON2021!=document.getElementById("filtroCON2021").value) return;
-if(filtroActivo==="Dip" && r.Dip20251V!=document.getElementById("filtroDip").value) return;
-if(filtroActivo==="20252V" && r["20252V"]!=document.getElementById("filtro20252V").value) return;
+if(fDist!="TODOS" && r.Distrito!=fDist) return;
+if(fCon!="TODOS" && r.CON2021!=fCon) return;
+if(fDip!="TODOS" && r.Dip20251V!=fDip) return;
+if(f52!="TODOS" && r["20252V"]!=f52) return;
 
 var color="#3388ff";
 
-if(filtroActivo==="Distrito") color=colorDistrito(r.Distrito);
-if(filtroActivo==="CON2021") color=colorPartido(r.CON2021);
-if(filtroActivo==="Dip") color=colorPartido(r.Dip20251V);
-if(filtroActivo==="20252V") color=colorPartido(r["20252V"]);
+if(fDist!="TODOS") color=colorDistrito(r.Distrito);
+if(fCon!="TODOS") color=colorPartido(r.CON2021);
+if(fDip!="TODOS") color=colorPartido(r.Dip20251V);
+if(f52!="TODOS") color=colorPartido(r["20252V"]);
 
 L.circleMarker([r.Latitud,r.Longitud],{
 radius:radioRecinto(r.Habilitados2026),
@@ -219,57 +217,26 @@ color:"#222",
 weight:1,
 fillOpacity:0.9
 })
+.bindPopup("<b>"+r.Recinto+"</b>")
 .addTo(capaRecintos);
 
 });
 
-capaRecintos.bringToFront();
-
 }
 
 
-// ================= FILTROS UNO POR UNO REAL =================
+// ================= FILTROS UNO POR UNO =================
 
-function activarFiltro(nombre, selectId){
+document.querySelectorAll("select").forEach(select=>{
+select.addEventListener("change",function(){
 
-filtroActivo = nombre;
-
-/* resetear todos */
-document.querySelectorAll("select").forEach(s=>s.value="TODOS");
-
-/* activar solo el actual */
-document.getElementById(selectId).value =
-event.target.value;
-
-dibujarRecintos();
-}
-
-document.getElementById("filtroDistrito")
-.addEventListener("change",function(e){
-if(this.value==="TODOS"){ filtroActivo=null; }
-else filtroActivo="Distrito";
-dibujarRecintos();
+document.querySelectorAll("select").forEach(s=>{
+if(s!==this) s.value="TODOS";
 });
 
-document.getElementById("filtroCON2021")
-.addEventListener("change",function(){
-if(this.value==="TODOS"){ filtroActivo=null; }
-else filtroActivo="CON2021";
 dibujarRecintos();
-});
 
-document.getElementById("filtroDip")
-.addEventListener("change",function(){
-if(this.value==="TODOS"){ filtroActivo=null; }
-else filtroActivo="Dip";
-dibujarRecintos();
 });
-
-document.getElementById("filtro20252V")
-.addEventListener("change",function(){
-if(this.value==="TODOS"){ filtroActivo=null; }
-else filtroActivo="20252V";
-dibujarRecintos();
 });
 
 
@@ -301,5 +268,6 @@ dibujarDistritos();
 });
 
 </script>
+
 </body>
 </html>
