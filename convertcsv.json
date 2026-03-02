@@ -1,0 +1,707 @@
+[
+ {
+   "A": "NOMBRE Y APELLIDO ",
+   "B": "Distrito",
+   "C": "Whatsapp"
+ },
+ {
+   "A": "Fabiola Vaca Pardo ",
+   "B": "Distrito 1",
+   "C": "75391184"
+ },
+ {
+   "A": "David A. Moscoso Castillo ",
+   "B": "Distrito 1",
+   "C": "75696422"
+ },
+ {
+   "A": "Carlos Quintanilla Vaca ",
+   "B": "Distrito 1 ",
+   "C": "78559925"
+ },
+ {
+   "A": "Diego Roca monje ",
+   "B": "Distrito 1",
+   "C": "6207060"
+ },
+ {
+   "A": "Miguel Angel Gutierrez ",
+   "B": "Distrito 1 ",
+   "C": "76043672"
+ },
+ {
+   "A": "Veronica Gutierrez Salvatierra ",
+   "B": "Distrito 1",
+   "C": "69059296"
+ },
+ {
+   "A": "Ingrid Vanessa Torrico ",
+   "B": "Distrito 1 ",
+   "C": "69354790"
+ },
+ {
+   "A": "Walter Marvin Loaiza ",
+   "B": "Distrito 1",
+   "C": "63600534"
+ },
+ {
+   "A": "Sandra Torrico Flores",
+   "B": "Distrito 1 ",
+   "C": "79062581"
+ },
+ {
+   "A": "Fernando Calisaya ",
+   "B": "Distrito 1 ",
+   "C": "70808690"
+ },
+ {
+   "A": "Yishell E. Quiroz Sejas ",
+   "B": "Distrito 1 ",
+   "C": "78422585"
+ },
+ {
+   "A": "Michelle Quiroz",
+   "B": "Distrito 1 ",
+   "C": "70295408"
+ },
+ {
+   "A": "Phillps Yael Carrasco Abasto",
+   "B": "Distrito 1 ",
+   "C": "74606697"
+ },
+ {
+   "A": "Eduardo Gabriel Alvarez ",
+   "B": "Distrito 2 ",
+   "C": "71605366"
+ },
+ {
+   "A": "Indira G. Vargas Bejarano ",
+   "B": "Distrito 2 ",
+   "C": "70959652"
+ },
+ {
+   "A": "Kecia Susano ",
+   "B": "Distrito 2 ",
+   "C": "67729727"
+ },
+ {
+   "A": "Martha Carrillo ",
+   "B": "Distrito 2 ",
+   "C": "76609909"
+ },
+ {
+   "A": "Flavio Silva ",
+   "B": "Distrito 2 ",
+   "C": "76015870"
+ },
+ {
+   "A": "Reinaldo Osinaga ",
+   "B": "Distrito 2 ",
+   "C": "75642577"
+ },
+ {
+   "A": "Bryan Saucedo ",
+   "B": "Distrito 2 ",
+   "C": "70813930"
+ },
+ {
+   "A": "Daniela Ramos ",
+   "B": "Distrito 2 ",
+   "C": "70803163"
+ },
+ {
+   "A": "Amparo Esthela Valverde ",
+   "B": "Distrito 2 ",
+   "C": "69081639"
+ },
+ {
+   "A": "Karina Susana Numbela ",
+   "B": "Distrito 2 ",
+   "C": "76345063"
+ },
+ {
+   "A": "Oscar Rodriguez ",
+   "B": "Distrito 2 ",
+   "C": "73171933"
+ },
+ {
+   "A": "Camila Astulla ",
+   "B": "Distrito 2 ",
+   "C": "78011264"
+ },
+ {
+   "A": "Maria Teresa Viscarra ",
+   "B": "Distrito 2 ",
+   "C": "70494914"
+ },
+ {
+   "A": "Maria Jose Castro ",
+   "B": "Distrito 2 ",
+   "C": "73688102"
+ },
+ {
+   "A": "Mariana Morales ",
+   "B": "Distrito 5",
+   "C": "77135558"
+ },
+ {
+   "A": "Randy Jesus Zabala ",
+   "B": "Distrito 2 ",
+   "C": "78567639"
+ },
+ {
+   "A": "Vanessa Jimenez ",
+   "B": "Distrito 2",
+   "C": "75344312"
+ },
+ {
+   "A": "Golber Banegas",
+   "B": "Distrito 2 ",
+   "C": "72181140"
+ },
+ {
+   "A": "Macrina Viscarra ",
+   "B": "Distrito 2 ",
+   "C": "70494914"
+ },
+ {
+   "A": "Udelmar Leaños ",
+   "B": "Distrito 2 ",
+   "C": "75394365"
+ },
+ {
+   "A": "Alejandro Taboada Cuellar ",
+   "B": "Distrito 3 ",
+   "C": "78062616"
+ },
+ {
+   "A": "Denny Donald Calleja ",
+   "B": "Distrito 3 ",
+   "C": "78002217"
+ },
+ {
+   "A": "Raul Alberto Fuente ",
+   "B": "Distrito 3 ",
+   "C": "70891838"
+ },
+ {
+   "A": "Claudia Villarroel M",
+   "B": "Distrito 3 ",
+   "C": "6900429"
+ },
+ {
+   "A": "Edwin Flores",
+   "B": "Distrito 3 ",
+   "C": "71011135"
+ },
+ {
+   "A": "Walter padillo",
+   "B": "Distrito 4 ",
+   "C": "76598479"
+ },
+ {
+   "A": "Gema Vanessa Cuellar ",
+   "B": "Distrito 4 ",
+   "C": "67837739"
+ },
+ {
+   "A": "Zenaida Dunia Ticona ",
+   "B": "Distrito 4",
+   "C": "72569338"
+ },
+ {
+   "A": "Rudy Alberto Montaño ",
+   "B": "Distrito 4",
+   "C": "78499372"
+ },
+ {
+   "A": "Moira Liliana Guzman ",
+   "B": "Distrito 4 ",
+   "C": "75522489"
+ },
+ {
+   "A": "Tito Delgado ",
+   "B": "Distrito 4 ",
+   "C": "78102200"
+ },
+ {
+   "A": "Maritza Michel Villazon ",
+   "B": "Distrito 4 ",
+   "C": "75572203"
+ },
+ {
+   "A": "Karla Alejandra Montoya ",
+   "B": "Distrito 4 ",
+   "C": "73193078"
+ },
+ {
+   "A": "Margareth Mariela Montoya ",
+   "B": "Distrito 4 ",
+   "C": "75649009"
+ },
+ {
+   "A": "Juan Manuel Rojas ",
+   "B": "Distrito 4 ",
+   "C": "65071046"
+ },
+ {
+   "A": "Corina Najaya ",
+   "B": "Distrito 4",
+   "C": "76335208"
+ },
+ {
+   "A": "Neiber Fuentes ",
+   "B": "Distrito 5 ",
+   "C": "67879305"
+ },
+ {
+   "A": "Hector Ferreira ",
+   "B": "Distrito 5 ",
+   "C": "70867722"
+ },
+ {
+   "A": "Marco Antonio Salvatierra ",
+   "B": "Distrito 5 ",
+   "C": "77675414"
+ },
+ {
+   "A": "Patricia Anzaldo Garcia ",
+   "B": "Distrito 5 ",
+   "C": "77598016"
+ },
+ {
+   "A": "Rafael Alquizalath",
+   "B": "Distrito 5 ",
+   "C": "79726282"
+ },
+ {
+   "A": "Genesis Calaf Taborga ",
+   "B": "Distrito 5 ",
+   "C": "73160993"
+ },
+ {
+   "A": "Fernando Franco Eguez ",
+   "B": "Distrito 5 ",
+   "C": "72670712"
+ },
+ {
+   "A": "Luis Ramiro Aguirre ",
+   "B": "Distrito 5 ",
+   "C": "77812240"
+ },
+ {
+   "A": "Patricia Jaret Tufiño ",
+   "B": "Distrito 5 ",
+   "C": "60941701"
+ },
+ {
+   "A": "Richard Silva Rodriguez ",
+   "B": "Distrito 5 ",
+   "C": "75593094"
+ },
+ {
+   "A": "Luis Gustavo Rioja ",
+   "B": "Distrito 5 ",
+   "C": "75962818"
+ },
+ {
+   "A": "Mariely SuareZ Flores",
+   "B": "Distrito 5 ",
+   "C": "76664512"
+ },
+ {
+   "A": "Mariana Morales ",
+   "B": "Distrito 5 ",
+   "C": "77135558"
+ },
+ {
+   "A": "Ramiro Cortez ",
+   "B": "Distrito 6 ",
+   "C": "73651099"
+ },
+ {
+   "A": "Erik Marco Cortez",
+   "B": "Distrito 6 ",
+   "C": "77662177"
+ },
+ {
+   "A": "Melissa Gutierrez",
+   "B": "Distrito 6 ",
+   "C": "69067222"
+ },
+ {
+   "A": "Helen Zulema Tejerina",
+   "B": "Distrito 6",
+   "C": "76659069"
+ },
+ {
+   "A": "Rudy ",
+   "B": "Distrito 6 ",
+   "C": "69250363"
+ },
+ {
+   "A": "Neiza Rojas ",
+   "B": "Distrito 6 ",
+   "C": "69161992"
+ },
+ {
+   "A": "Erick Vargas",
+   "B": "Distrito 6 ",
+   "C": "75095800"
+ },
+ {
+   "A": "Danny Mendoza",
+   "B": "Distrito 6 ",
+   "C": "65016683"
+ },
+ {
+   "A": "Andrea Fernanda Chavez ",
+   "B": "Distrito 6 ",
+   "C": "78416187"
+ },
+ {
+   "A": "Maria Cristina Zelaya ",
+   "B": "Distrito 6 ",
+   "C": "65000812"
+ },
+ {
+   "A": "Jorge Mauricio Torrez ",
+   "B": "Distrito 6 ",
+   "C": "70485635"
+ },
+ {
+   "A": "Wilma Perez Oropeza ",
+   "B": "Distrito 6 ",
+   "C": "69207191"
+ },
+ {
+   "A": "Ana Alicia Cuellar ",
+   "B": "Distrito 6 ",
+   "C": "77610640"
+ },
+ {
+   "A": "Jose Harol Alcoba ",
+   "B": "Distrito 6 ",
+   "C": "77648582"
+ },
+ {
+   "A": "Kevin M. Alvarez ",
+   "B": "Distrito 6 ",
+   "C": "78406264"
+ },
+ {
+   "A": "Adda Sofia Tolavi ",
+   "B": "Distrito 6 ",
+   "C": "76128977"
+ },
+ {
+   "A": "Carlos Andres Saucedo Camacho ",
+   "B": "Distrito 6 ",
+   "C": "67838616"
+ },
+ {
+   "A": "Ricarco Pesoa",
+   "B": "Distrito 7 ",
+   "C": "70292321"
+ },
+ {
+   "A": "Kevin Rojas ",
+   "B": "Distrito 7 ",
+   "C": "78182772"
+ },
+ {
+   "A": "Alejandro Miguel Gutierrez",
+   "B": "Distrito 7 ",
+   "C": "73126776"
+ },
+ {
+   "A": "Jovita Claros ",
+   "B": "Distrito 7 ",
+   "C": "70994609"
+ },
+ {
+   "A": "Maria Carmen Quintanilla ",
+   "B": "Distrito 7 ",
+   "C": "77855098"
+ },
+ {
+   "A": "Saulo Jonatan Flores",
+   "B": "Distrito 7 ",
+   "C": "70067311"
+ },
+ {
+   "A": "Erwin Parada ",
+   "B": "Distrito 7 ",
+   "C": "7734871"
+ },
+ {
+   "A": "Teresa Alba Paredes",
+   "B": "Distrito 7 ",
+   "C": "74647746"
+ },
+ {
+   "A": "Emily Mariela Gonzales ",
+   "B": "Distrito 7 ",
+   "C": "63601660"
+ },
+ {
+   "A": "Jose Miguel Mendez ",
+   "B": "Distrito 7 ",
+   "C": "72621583"
+ },
+ {
+   "A": "Maiky Danner Moreno ",
+   "B": "Distrito 7 ",
+   "C": "77630858"
+ },
+ {
+   "A": "Isabel Romero ",
+   "B": "Distrito 7 ",
+   "C": "60003627"
+ },
+ {
+   "A": "Lizeth Hernandez ",
+   "B": "Distrito 7 ",
+   "C": "78458280"
+ },
+ {
+   "A": "Alexander Rojas ",
+   "B": "Distrito 7 ",
+   "C": "77367778"
+ },
+ {
+   "A": "Waldir Avila Molina ",
+   "B": "Distrito 7 ",
+   "C": "65935258"
+ },
+ {
+   "A": "Marco Antonio Velarde ",
+   "B": "Distrito 7 ",
+   "C": "75646029"
+ },
+ {
+   "A": "Juan Carlos Ramos ",
+   "B": "Distrito 7 ",
+   "C": "60554423"
+ },
+ {
+   "A": "Alfredo Polanco ",
+   "B": "Distrito 7 ",
+   "C": "68902199"
+ },
+ {
+   "A": "Mery Bordon Machua ",
+   "B": "Distrito 7 ",
+   "C": "70088487"
+ },
+ {
+   "A": "Jose Luis Alvarez ",
+   "B": "Distrito 7 ",
+   "C": "70054841"
+ },
+ {
+   "A": "Ruben Reinaldo Roque ",
+   "B": "Distrito 8 ",
+   "C": "72120749"
+ },
+ {
+   "A": "Carolina Vicente ",
+   "B": "Distrito 8 ",
+   "C": "76688587"
+ },
+ {
+   "A": " Willdey velasco ",
+   "B": "Distrito 8 ",
+   "C": "72665620"
+ },
+ {
+   "A": "Carlo Fernando Torrez ",
+   "B": "Distrito 8 ",
+   "C": "75048669"
+ },
+ {
+   "A": "Juan Americo Ramos ",
+   "B": "Distrito 8 ",
+   "C": "72314159"
+ },
+ {
+   "A": "Paula Velasco ",
+   "B": "Distrito 8 ",
+   "C": "72665620"
+ },
+ {
+   "A": "Paul Diaz ",
+   "B": "Distrito 8 ",
+   "C": "72672901"
+ },
+ {
+   "A": "Carlos Andres Tapia ",
+   "B": "Distrito 8 ",
+   "C": "78507889"
+ },
+ {
+   "A": "Maria Carla Yavi Mamani",
+   "B": "Distrito 8 ",
+   "C": "78105401"
+ },
+ {
+   "A": "Mauricio Justiniano ",
+   "B": "Distrito 8 ",
+   "C": "71185308"
+ },
+ {
+   "A": "Julio Cesar Hurtado ",
+   "B": "Distrito 8 ",
+   "C": "72625843"
+ },
+ {
+   "A": "Antonio Cabrera ",
+   "B": "Distrito 9 ",
+   "C": "70099382"
+ },
+ {
+   "A": "Carmela Soria ",
+   "B": "Distrito 9 ",
+   "C": "70997621"
+ },
+ {
+   "A": "J A Maximiliano Roda ",
+   "B": "Distrito 9 ",
+   "C": "69212436"
+ },
+ {
+   "A": "Maria Estela Gil ",
+   "B": "Distrito 9 ",
+   "C": "78101601"
+ },
+ {
+   "A": "Nayely Ugarteche",
+   "B": "Distrito 9 ",
+   "C": "75544371"
+ },
+ {
+   "A": "Emilene Coca ",
+   "B": "Distrito 9 ",
+   "C": "75337700"
+ },
+ {
+   "A": "Rodrigo Villalva Rojas ",
+   "B": "Distrito 9 ",
+   "C": "73198265"
+ },
+ {
+   "A": "Jorge A. Ledezma ",
+   "B": "Distrito 9 ",
+   "C": "77011135"
+ },
+ {
+   "A": "Ruben Dario Melgar ",
+   "B": "Distrito 9 ",
+   "C": "73188195"
+ },
+ {
+   "A": "Diego  J. Arteaga ",
+   "B": "Distrito 9 ",
+   "C": "72939813"
+ },
+ {
+   "A": "Carla Patricia Cabrera ",
+   "B": "Distrito 9 ",
+   "C": "78024982"
+ },
+ {
+   "A": "Rodrigo Gongora ",
+   "B": "Distrito 9 ",
+   "C": "77326191"
+ },
+ {
+   "A": "Maria Eugenia Escobar ",
+   "B": "Distrito 10 ",
+   "C": "76642199"
+ },
+ {
+   "A": "Josue Vallejos ",
+   "B": "Distrito 10 ",
+   "C": "65030359"
+ },
+ {
+   "A": "Javier Andres Cuellar ",
+   "B": "Distrito 11",
+   "C": "78010626"
+ },
+ {
+   "A": "Andre Snayder Herrera ",
+   "B": "Distrito 12 ",
+   "C": "71015784"
+ },
+ {
+   "A": "Luis Fernando Arancibia",
+   "B": "Distrito12",
+   "C": "78405849"
+ },
+ {
+   "A": "Tatiana Angelica Vasquez Rojas ",
+   "B": "Distrito12",
+   "C": "69080318"
+ },
+ {
+   "A": "Yoohana Arauz Osinaga ",
+   "B": "Distrito12",
+   "C": "75662160"
+ },
+ {
+   "A": "Teddy Edson Boriqui",
+   "B": "Distrito 13 ",
+   "C": "71388432"
+ },
+ {
+   "A": "Jhojana  Jara Mamani ",
+   "B": "Distrito 13 ",
+   "C": "74678708"
+ },
+ {
+   "A": "Gonzalo Pardo ",
+   "B": "Distrito 13 ",
+   "C": "73179574"
+ },
+ {
+   "A": "Leonel Rojas  Rojas Llanos ",
+   "B": "Distrito 13 ",
+   "C": "76698570"
+ },
+ {
+   "A": "Maria Del Carmen Veliz ",
+   "B": "Distrito 13 ",
+   "C": "75543904"
+ },
+ {
+   "A": "Martha Caceres ",
+   "B": "Distrito 14",
+   "C": "63530556"
+ },
+ {
+   "A": "William Yugar Hinojosa ",
+   "B": "Distrito 14 ",
+   "C": "62185919"
+ },
+ {
+   "A": "Andres A. Padilla ",
+   "B": "Distrito 15 ",
+   "C": "78561480"
+ },
+ {
+   "A": "Mariela Patiño ",
+   "B": "Distrito 15 ",
+   "C": "76658598"
+ },
+ {
+   "A": "Miguel Angel A ramayo ",
+   "B": "Distrito 15 ",
+   "C": "77658661"
+ },
+ {
+   "A": "Maria Carmen Quintanilla ",
+   "B": "Distrito 15 ",
+   "C": "77855098"
+ }
+]
