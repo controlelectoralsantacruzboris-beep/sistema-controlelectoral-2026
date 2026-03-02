@@ -7,275 +7,437 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-body { margin:0; font-family: Arial; }
-#map { height:100vh; }
+body { margin:0; font-family: Arial; display:flex; overflow:hidden; }
+#map { width:75%; height:100vh; }
 
+/* ===== DASHBOARD ===== */
+#dashboard {
+  width:25%;
+  height:100vh;
+  background:#1e1e1e;
+  color:white;
+  padding:15px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+
+#dashboard h3 { margin:0 0 8px 0; font-size:16px; }
+
+#rankingRecintos{
+  max-height:140px;
+  overflow-y:auto;
+  margin-top:6px;
+  border-top:1px solid #444;
+  padding-top:8px;
+}
+
+.ranking-item { font-size:12px; margin-bottom:3px; }
+
+/* Panel Brigadas */
+#panelBrigadas {
+  margin-top:10px;
+  border-top:1px solid #444;
+  padding-top:10px;
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+}
+
+#listaBrigadas {
+  overflow-y:auto;
+  flex:1;
+  min-height:0;
+  margin-top:8px;
+}
+
+.brigada-item {
+  background:#2a2a2a;
+  border-left:3px solid #FFD700;
+  padding:6px 8px;
+  margin-bottom:5px;
+  border-radius:3px;
+  font-size:12px;
+}
+
+.brigada-item .nombre { font-weight:bold; color:#FFD700; }
+.brigada-item .telefono { color:#aaa; font-size:11px; }
+
+/* ===== CONTROLES ===== */
 .controls{
-position:absolute;
-top:15px;
-left:50%;
-transform:translateX(-50%);
-z-index:1000;
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-justify-content:center;
+  position:absolute;
+  top:15px;
+  left:38%;
+  transform:translateX(-50%);
+  z-index:1000;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
 }
 
 .controls input, .controls select{
-padding:8px 12px;
-border-radius:20px;
-border:1px solid #ccc;
-font-size:13px;
+  padding:8px 12px;
+  border-radius:20px;
+  border:1px solid #ccc;
+  font-size:13px;
 }
 
-.suggestions{
-position:absolute;
-top:55px;
-left:50%;
-transform:translateX(-50%);
-background:white;
-width:300px;
-max-height:200px;
-overflow-y:auto;
-border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.2);
-z-index:1000;
+/* Buscador brigadas en controles */
+.brigada-search-row {
+  display:flex;
+  gap:6px;
+  align-items:center;
 }
 
-.suggestions div{
-padding:8px;
-cursor:pointer;
+.brigada-search-row input {
+  padding:8px 12px;
+  border-radius:20px;
+  border:1px solid #ccc;
+  font-size:13px;
+  width:200px;
 }
 
-.suggestions div:hover{
-background:#f0f0f0;
+.brigada-search-row select {
+  padding:8px 6px;
+  border-radius:20px;
+  border:1px solid #ccc;
+  font-size:12px;
 }
+
+/* Autocomplete */
+#suggestions, #suggestionsBrigada {
+  position:absolute;
+  background:white;
+  width:260px;
+  max-height:200px;
+  overflow-y:auto;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+  z-index:2000;
+}
+
+#suggestions { top:55px; left:38%; transform:translateX(-50%); }
+#suggestionsBrigada { top:95px; left:38%; transform:translateX(-50%); }
+
+#suggestions div, #suggestionsBrigada div{
+  padding:8px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+#suggestions div:hover, #suggestionsBrigada div:hover { background:#f0f0f0; }
 </style>
 </head>
 <body>
 
+<!-- CONTROLES -->
 <div class="controls">
-<input type="text" id="searchInput" placeholder="Buscar recinto...">
+  <input type="text" id="searchInput" placeholder="🔍 Buscar recinto...">
 
-<select id="filtroModo">
-<option value="recinto">Recintos 2026</option>
-<option value="CON2021">CON2021</option>
-<option value="Dip20251V">Dip20251V</option>
-<option value="20252V">20252V</option>
-</select>
+  <select id="filtroModo">
+    <option value="recinto">Recintos 2026</option>
+    <option value="CON2021">CON2021</option>
+    <option value="Dip20251V">Dip20251V</option>
+    <option value="20252V">20252V</option>
+  </select>
 </div>
 
-<div id="suggestions" class="suggestions"></div>
+<!-- Segunda fila: buscador brigadas + filtro distrito -->
+<div class="brigada-search-row" style="position:absolute;top:55px;left:38%;transform:translateX(-50%);z-index:1000;">
+  <input type="text" id="searchBrigada" placeholder="⚖️ Buscar Brigada Legal...">
+  <select id="filtroBrigadaDistrito">
+    <option value="">Todos los distritos</option>
+    <option value="Distrito 1">Distrito 1</option>
+    <option value="Distrito 2">Distrito 2</option>
+    <option value="Distrito 3">Distrito 3</option>
+    <option value="Distrito 4">Distrito 4</option>
+    <option value="Distrito 5">Distrito 5</option>
+    <option value="Distrito 6">Distrito 6</option>
+    <option value="Distrito 7">Distrito 7</option>
+    <option value="Distrito 8">Distrito 8</option>
+    <option value="Distrito 9">Distrito 9</option>
+    <option value="Distrito 10">Distrito 10</option>
+    <option value="Distrito 11">Distrito 11</option>
+    <option value="Distrito 12">Distrito 12</option>
+    <option value="Distrito 13">Distrito 13</option>
+    <option value="Distrito 14">Distrito 14</option>
+    <option value="Distrito 15">Distrito 15</option>
+  </select>
+</div>
+
+<div id="suggestions"></div>
+<div id="suggestionsBrigada"></div>
+
+<!-- MAPA -->
 <div id="map"></div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <h3>📊 Dashboard Electoral</h3>
+
+  <b>Total Recintos:</b>
+  <div id="totalRecintos">Cargando...</div>
+
+  <b>Total Habilitados 2026:</b>
+  <div id="totalHabilitados">Cargando...</div>
+
+  <hr style="border-color:#444;margin:6px 0;">
+
+  <b>🏆 Ranking Recintos</b>
+  <div id="rankingRecintos"></div>
+
+  <div id="panelBrigadas">
+    <b>⚖️ Brigadas Legales</b>
+    <div id="contadorBrigadas" style="font-size:12px;color:#aaa;">Cargando...</div>
+    <div id="listaBrigadas"></div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== MAPA BASE =====
+// ===== MAPA =====
 var map = L.map('map').setView([-17.7833, -63.1821], 11);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-maxZoom:19
-}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 
 var capaDistritos = L.layerGroup().addTo(map);
-var capaRecintos = L.layerGroup().addTo(map);
+var capaRecintos  = L.layerGroup().addTo(map);
 
-var markers = [];
+var markers  = [];
+var brigadas = [];
 
-// ===== COLORES POLITICOS FIJOS =====
+// ===== COLORES =====
 function colorPartido(p){
-if(!p) return "#007bff";
-p = p.toUpperCase();
-
-if(p.includes("LIBRE")) return "red";
-if(p.includes("C-A")) return "orange";
-if(p.includes("UCS")) return "cyan";
-if(p.includes("NULO")) return "blue";
-if(p.includes("MAS-IPSP")) return "blue";
-if(p.includes("PDC")) return "green";
-if(p.includes("DEMOCRATAS")) return "green";
-if(p.includes("UNIDAD")) return "yellow";
-
-return "#007bff";
+  if(!p) return "#007bff";
+  p = p.toUpperCase();
+  if(p.includes("LIBRE"))      return "#FF0000";
+  if(p.includes("C-A"))        return "#FF8000";
+  if(p.includes("UCS"))        return "#00BFFF";
+  if(p.includes("NULO"))       return "#0000FF";
+  if(p.includes("MAS"))        return "#0033CC";
+  if(p.includes("PDC"))        return "#008000";
+  if(p.includes("DEMOCRATAS")) return "#006400";
+  if(p.includes("UNIDAD"))     return "#FFD700";
+  return "#007bff";
 }
 
-// ===== COLOR POR DISTRITO (cuando modo recintos) =====
 function colorDistrito(distrito){
-if(!distrito) return "#007bff";
-let hash = 0;
-for(let i=0;i<distrito.length;i++){
-hash = distrito.charCodeAt(i) + ((hash<<5)-hash);
-}
-let color = "#";
-for(let i=0;i<3;i++){
-let value = (hash >> (i*8)) & 255;
-color += ("00"+value.toString(16)).substr(-2);
-}
-return color;
+  if(!distrito) return "#007bff";
+  let colores = [
+    "#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+    "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf",
+    "#8B0000","#006400","#00008B","#FF8C00","#4B0082"
+  ];
+  let num = parseInt(distrito.toString().match(/\d+/)) || 1;
+  return colores[(num-1) % colores.length];
 }
 
-// =======================
-// CARGAR UV
-// =======================
-
+// ===== CARGAR UV =====
 fetch("./uv.geojson")
-.then(r=>{
-if(!r.ok) throw new Error("No se pudo cargar uv.geojson");
-return r.json();
-})
-.then(data=>{
+  .then(r=>{ if(!r.ok) throw new Error("No uv.geojson"); return r.json(); })
+  .then(data=>{
+    L.geoJSON(data,{
+      style:function(f){
+        let pob = Number(f.properties.poblacion)||0;
+        let op = pob<=1000?0.2:pob<=4500?0.4:pob<=8000?0.6:pob<=13000?0.8:1.0;
+        return { color:"#444", weight:1, fillColor:"#ff0000", fillOpacity:op };
+      },
+      onEachFeature:function(f,layer){
+        layer.bindPopup(`<b>UV:</b> ${f.properties.zona||""}<br><b>Distrito:</b> ${f.properties.distrito||""}<br><b>Población:</b> ${f.properties.poblacion||0}`);
+      }
+    }).addTo(capaDistritos);
+    capaDistritos.bringToBack();
+  })
+  .catch(e=>console.warn("UV no cargado:",e));
 
-L.geoJSON(data,{
-style:function(feature){
-
-let pob = Number(feature.properties.poblacion)||0;
-let opacity = 0.2;
-
-if(pob <= 1000){
-opacity = 0.2;
-}else if(pob <= 4500){
-opacity = 0.4;
-}else if(pob <= 8000){
-opacity = 0.6;
-}else if(pob <= 13000){
-opacity = 0.8;
-}else{
-opacity = 1.0;
-}
-
-return{
-color:"#444",
-weight:1,
-fillColor:"#ff0000",
-fillOpacity:opacity
-};
-
-},
-onEachFeature:function(feature,layer){
-layer.bindPopup(`
-<b>UV:</b> ${feature.properties.zona || ""}<br>
-<b>Distrito:</b> ${feature.properties.distrito || ""}<br>
-<b>Población:</b> ${feature.properties.poblacion || 0}
-`);
-}
-}).addTo(capaDistritos);
-
-capaDistritos.bringToBack();
-
-})
-.catch(e=>console.error("ERROR UV:",e));
-
-// =======================
-// CARGAR RECINTOS
-// =======================
-
+// ===== CARGAR RECINTOS =====
 fetch("./recintos2026.json")
-.then(r=>{
-if(!r.ok) throw new Error("No se pudo cargar recintos2026.json");
-return r.json();
-})
-.then(data=>{
+  .then(r=>{ if(!r.ok) throw new Error("No recintos"); return r.json(); })
+  .then(data=>{
+    let maxHab = Math.max(...data.map(d=>Number(d.Habilitados2026)||0));
+    if(maxHab===0) maxHab=1;
 
-let maxHab = Math.max(...data.map(d=>Number(d.Habilitados2026)||0));
-if(maxHab===0) maxHab=1;
+    let totalHab=0;
+    let ranking=[];
 
-data.forEach(d=>{
+    data.forEach(d=>{
+      let lat=Number(d.Latitud), lng=Number(d.Longitud);
+      if(isNaN(lat)||isNaN(lng)) return;
 
-let lat = Number(d.Latitud);
-let lng = Number(d.Longitud);
-if(isNaN(lat)||isNaN(lng)) return;
+      let hab = Number(d.Habilitados2026)||0;
+      totalHab += hab;
+      ranking.push({nombre:d.Recinto, hab});
 
-let size = (Number(d.Habilitados2026)||0)/maxHab * 25;
+      let size = hab/maxHab * 25;
+      let marker = L.circleMarker([lat,lng],{
+        radius:4+size,
+        fillColor:"#007bff",
+        color:"#000",
+        weight:1,
+        fillOpacity:0.9
+      });
 
-let marker = L.circleMarker([lat,lng],{
-radius:4+size,
-fillColor:"#007bff",
-color:"#000",
-weight:1,
-fillOpacity:0.9
-});
+      marker.bindPopup(`
+        <b>🏫 ${d.Recinto}</b><br><br>
+        👤 <b>Jefe:</b> ${d.JefesdeRecinto||"N/D"}<br>
+        🗳 <b>Habilitados:</b> ${hab}<br>
+        🪑 <b>Mesas 2026:</b> ${d["Cantidad Mesas 2026"]||0}<br>
+        🏛 <b>Distrito:</b> ${d.Distrito||""}<br>
+        📊 <b>CON2021:</b> ${d.CON2021||""}<br>
+        🗳 <b>Dip20251V:</b> ${d.Dip20251V||""}<br>
+        📌 <b>20252V:</b> ${d["20252V"]||""}
+      `);
 
-marker.bindPopup(`
-<b>🏫 ${d.Recinto}</b><br><br>
-👤 <b>Jefe:</b> ${d.JefesdeRecinto || "N/D"}<br>
-🗳 <b>Habilitados:</b> ${d.Habilitados2026 || 0}<br>
-🪑 <b>Mesas 2026:</b> ${d["Cantidad Mesas 2026"] || 0}<br>
-🏛 <b>Distrito:</b> ${d.Distrito || ""}<br>
-📊 <b>CON2021:</b> ${d.CON2021 || ""}<br>
-🗳 <b>Dip20251V:</b> ${d.Dip20251V || ""}<br>
-📌 <b>20252V:</b> ${d["20252V"] || ""}
-`);
+      markers.push({data:d, marker});
+    });
 
-markers.push({data:d, marker:marker});
+    // Dashboard stats
+    document.getElementById("totalRecintos").innerHTML = markers.length;
+    document.getElementById("totalHabilitados").innerHTML = totalHab.toLocaleString();
 
-});
+    ranking.sort((a,b)=>b.hab-a.hab);
+    document.getElementById("rankingRecintos").innerHTML =
+      ranking.map(r=>`<div class="ranking-item">${r.nombre} - ${r.hab.toLocaleString()}</div>`).join("");
 
-aplicarColores();
+    aplicarColores();
+  })
+  .catch(e=>console.error("ERROR RECINTOS:",e));
 
-})
-.catch(e=>console.error("ERROR RECINTOS:",e));
+// ===== CARGAR BRIGADAS =====
+// Tu JSON tiene columnas A=nombre, B=distrito, C=whatsapp
+// La primera fila es el encabezado (A:"NOMBRE Y APELLIDO", etc.) — la saltamos
+fetch("./convertcsv.json")
+  .then(r=>{ if(!r.ok) throw new Error("No convertcsv.json"); return r.json(); })
+  .then(data=>{
+    // Detectar si la primera fila es encabezado
+    let inicio = 0;
+    if(data[0] && (
+      (data[0].A && data[0].A.toString().toUpperCase().includes("NOMBRE")) ||
+      (data[0].A && data[0].A.toString().toUpperCase().includes("A"))
+    )){
+      inicio = 1; // saltar fila de encabezado
+    }
 
-// =======================
-// CAMBIO DE MODO
-// =======================
+    for(let i=inicio; i<data.length; i++){
+      let row = data[i];
+      let nombre   = (row.A || row["NOMBRE Y APELLIDO"] || "").toString().trim();
+      let distrito = (row.B || row["Distrito"] || "").toString().trim();
+      let whatsapp = (row.C || row["Whatsapp"] || "").toString().trim();
+      if(nombre) brigadas.push({nombre, distrito, whatsapp});
+    }
 
+    document.getElementById("contadorBrigadas").innerHTML = `${brigadas.length} abogados cargados`;
+    actualizarPanelBrigadas();
+  })
+  .catch(e=>{ console.warn("Brigadas no cargadas:",e); document.getElementById("contadorBrigadas").innerHTML="No se pudo cargar"; });
+
+// ===== COLORES RECINTOS =====
 document.getElementById("filtroModo").addEventListener("change", aplicarColores);
 
 function aplicarColores(){
-
-capaRecintos.clearLayers();
-
-let modo = document.getElementById("filtroModo").value;
-
-markers.forEach(obj=>{
-
-let d = obj.data;
-let color = "#007bff";
-
-if(modo === "recintos"){
-color = colorDistrito(d.Distrito);
-}else{
-color = colorPartido(d[modo]);
+  capaRecintos.clearLayers();
+  let modo = document.getElementById("filtroModo").value;
+  markers.forEach(obj=>{
+    let d = obj.data;
+    let color = modo==="recinto" ? colorDistrito(d.Distrito) : colorPartido(d[modo]);
+    obj.marker.setStyle({fillColor:color});
+    obj.marker.addTo(capaRecintos);
+  });
+  capaRecintos.bringToFront();
 }
 
-obj.marker.setStyle({fillColor:color});
-obj.marker.addTo(capaRecintos);
+// ===== PANEL BRIGADAS =====
+function actualizarPanelBrigadas(filtroNombre, filtroDistrito){
+  filtroNombre  = (filtroNombre  || "").toLowerCase().trim();
+  filtroDistrito = (filtroDistrito || "").trim();
 
-});
+  let filtradas = brigadas.filter(b=>{
+    let mN = filtroNombre  === "" || b.nombre.toLowerCase().includes(filtroNombre);
+    let mD = filtroDistrito === "" || b.distrito.toLowerCase().trim() === filtroDistrito.toLowerCase().trim();
+    return mN && mD;
+  });
 
-// 🔥 GARANTIZAR QUE SIEMPRE ESTÉN ENCIMA
-capaRecintos.bringToFront();
+  document.getElementById("contadorBrigadas").innerHTML =
+    `Mostrando <b>${filtradas.length}</b> de ${brigadas.length} abogados`;
 
+  document.getElementById("listaBrigadas").innerHTML = filtradas.length
+    ? filtradas.map(b=>`
+        <div class="brigada-item">
+          <div class="nombre">👤 ${b.nombre}</div>
+          <div class="telefono">📍 ${b.distrito||"Sin distrito"} &nbsp;|&nbsp; 📱 ${b.whatsapp||"-"}</div>
+        </div>`).join("")
+    : '<div style="color:#888;font-size:12px;margin-top:8px;">Sin resultados</div>';
 }
 
-// ===== BUSCADOR =====
-var input=document.getElementById("searchInput");
-var suggestions=document.getElementById("suggestions");
+// ===== BUSCADOR RECINTOS =====
+var searchInput   = document.getElementById("searchInput");
+var suggestions   = document.getElementById("suggestions");
 
-input.addEventListener("input",function(){
-
-let texto=this.value.toLowerCase();
-suggestions.innerHTML="";
-if(texto.length<2) return;
-
-markers
-.filter(m=>m.data.Recinto.toLowerCase().includes(texto))
-.slice(0,8)
-.forEach(m=>{
-let div=document.createElement("div");
-div.innerText=m.data.Recinto;
-div.onclick=function(){
-map.setView(m.marker.getLatLng(),16);
-m.marker.openPopup();
-suggestions.innerHTML="";
-input.value="";
-};
-suggestions.appendChild(div);
+searchInput.addEventListener("input",function(){
+  let texto = this.value.toLowerCase();
+  suggestions.innerHTML="";
+  if(texto.length<2) return;
+  markers
+    .filter(m=>m.data.Recinto.toLowerCase().includes(texto))
+    .slice(0,8)
+    .forEach(m=>{
+      let div=document.createElement("div");
+      div.innerText=m.data.Recinto;
+      div.onclick=function(){
+        map.setView(m.marker.getLatLng(),16);
+        m.marker.openPopup();
+        suggestions.innerHTML="";
+        searchInput.value="";
+      };
+      suggestions.appendChild(div);
+    });
 });
 
+// ===== BUSCADOR BRIGADAS =====
+var searchBrigada = document.getElementById("searchBrigada");
+var suggBrigada   = document.getElementById("suggestionsBrigada");
+var selectDistrito = document.getElementById("filtroBrigadaDistrito");
+
+searchBrigada.addEventListener("input",function(){
+  let texto = this.value.toLowerCase();
+  let dist  = selectDistrito.value;
+  suggBrigada.innerHTML="";
+
+  if(texto.length > 0){
+    brigadas
+      .filter(b=>{
+        let mN = b.nombre.toLowerCase().includes(texto);
+        let mD = dist==="" || b.distrito.toLowerCase().trim()===dist.toLowerCase().trim();
+        return mN && mD;
+      })
+      .slice(0,10)
+      .forEach(b=>{
+        let div=document.createElement("div");
+        div.innerHTML=`<b>${b.nombre}</b> <span style="color:#999;font-size:11px;">${b.distrito}</span>`;
+        div.onclick=function(){
+          searchBrigada.value=b.nombre;
+          suggBrigada.innerHTML="";
+          actualizarPanelBrigadas(b.nombre, dist);
+        };
+        suggBrigada.appendChild(div);
+      });
+  }
+
+  actualizarPanelBrigadas(this.value, dist);
+});
+
+selectDistrito.addEventListener("change",function(){
+  actualizarPanelBrigadas(searchBrigada.value, this.value);
+});
+
+// Cerrar sugerencias al clickear fuera
+document.addEventListener("click",function(e){
+  if(e.target!==searchInput)  suggestions.innerHTML="";
+  if(e.target!==searchBrigada) suggBrigada.innerHTML="";
 });
 
 </script>
