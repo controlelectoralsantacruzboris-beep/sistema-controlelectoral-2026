@@ -671,17 +671,64 @@ document.querySelectorAll('.tab').forEach(function(t){
   t.addEventListener('click',function(){ activarTab(this.dataset.tab); });
 });
 
-// Toggle sidebar on handle tap (mobile)
+// ── BOTTOM SHEET SWIPE ──
 var sbEl = document.getElementById('sidebar');
 var handleEl = document.getElementById('handle');
+
 function toggleSidebar(){ if(sbEl) sbEl.classList.toggle('expanded'); }
 if(handleEl) handleEl.addEventListener('click', toggleSidebar);
-// Also expand when tapping tabs on mobile
+
+// Expand when tapping tabs on mobile
 document.querySelectorAll('.tab').forEach(function(t){
   t.addEventListener('click', function(){
     if(window.innerWidth <= 768 && sbEl) sbEl.classList.add('expanded');
   });
 });
+
+// ── SWIPE GESTURE ──
+if(sbEl){
+  var touchStartY = 0;
+  var touchStartH = 0;
+  var isDragging  = false;
+  var COLLAPSED_H = 56;
+  var MAX_H_VH    = 70; // 70vh
+
+  function getMaxH(){ return Math.floor(window.innerHeight * MAX_H_VH / 100); }
+
+  sbEl.addEventListener('touchstart', function(e){
+    // only drag from handle or top 30px of sidebar
+    var rect = sbEl.getBoundingClientRect();
+    var touchY = e.touches[0].clientY;
+    if(touchY - rect.top > 30 && e.target !== handleEl) return;
+    touchStartY = touchY;
+    touchStartH = sbEl.offsetHeight;
+    isDragging  = true;
+    sbEl.style.transition = 'none'; // disable animation while dragging
+  }, {passive: true});
+
+  sbEl.addEventListener('touchmove', function(e){
+    if(!isDragging) return;
+    var dy   = touchStartY - e.touches[0].clientY; // positive = swipe up
+    var newH = Math.min(Math.max(touchStartH + dy, COLLAPSED_H), getMaxH());
+    sbEl.style.height = newH + 'px';
+  }, {passive: true});
+
+  sbEl.addEventListener('touchend', function(e){
+    if(!isDragging) return;
+    isDragging = false;
+    sbEl.style.transition = 'height 0.3s ease';
+    var curH    = sbEl.offsetHeight;
+    var midH    = (COLLAPSED_H + getMaxH()) / 2;
+    // snap to expanded or collapsed
+    if(curH > midH){
+      sbEl.style.height = getMaxH() + 'px';
+      sbEl.classList.add('expanded');
+    } else {
+      sbEl.style.height = COLLAPSED_H + 'px';
+      sbEl.classList.remove('expanded');
+    }
+  }, {passive: true});
+}
 
 } catch(err){ alert('ERROR: '+err.message+'\n'+err.stack); }
 }; // end window.onload
