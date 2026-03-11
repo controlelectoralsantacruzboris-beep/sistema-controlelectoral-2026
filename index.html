@@ -93,6 +93,50 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:
 .leaflet-popup-tip{background:#161b22!important;}
 .leaflet-popup-close-button{color:#7d8590!important;}
 .leaflet-popup-close-button:hover{color:#e6edf3!important;}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  #wrap { flex-direction: column; }
+  #map  { width:100vw; height:55vh; min-width:unset; }
+  #topbar { left:0; right:0; top:8px; }
+  .sbox { width:260px; font-size:12px; }
+
+  #sidebar {
+    width:100vw; min-width:unset; height:45vh;
+    border-left:none; border-top:2px solid var(--brd);
+    flex-direction:column;
+  }
+  .shead { padding:8px 14px; }
+  .slogo { font-size:16px; }
+  .ssub  { display:none; }
+
+  .stats { grid-template-columns:repeat(4,1fr); gap:5px; padding:6px 8px; }
+  .sc    { padding:6px 8px; }
+  .sv    { font-size:16px; }
+  .sl    { font-size:9px; }
+
+  .legend { padding:4px 10px; gap:10px; }
+  .li     { font-size:10px; }
+
+  .tabs .tab { font-size:11px; padding:7px 4px; }
+
+  .lscroll { padding:5px; }
+  .ri      { padding:7px 8px; }
+  .rname   { font-size:11px; }
+
+  #det { padding:10px; gap:6px; }
+  .dtn { font-size:15px; }
+  .dtg { grid-template-columns:repeat(4,1fr); gap:4px; }
+  .dtc { padding:5px 7px; }
+  .dtv { font-size:13px; }
+
+  #leyendaDist { bottom:47vh; left:6px; padding:6px 10px; max-width:130px; font-size:10px; }
+  #leyendaDist .ld-title { font-size:11px; }
+  .ld-item { margin-bottom:2px; }
+
+  .dist-filter { padding:5px 6px; gap:3px; }
+  .dbtn { font-size:9px; padding:2px 6px; }
+}
 </style>
 </head>
 <body>
@@ -134,6 +178,10 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:
         <div class="dtn" id="detN"></div>
         <div class="dtg" id="detG"></div>
         <button class="bincid" id="btnI">⚠ INCIDENCIA</button>
+        <a id="detMapsLink" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:7px;border-radius:6px;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.4);color:#4285f4;font-size:12px;font-weight:600;text-decoration:none;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="#4285f4"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          Ver en Google Maps
+        </a>
       </div>
     </div>
 
@@ -266,6 +314,9 @@ function buildPopupHTML(obj) {
     +'<td style="font-weight:600;text-align:right">'+Number(d.hab).toLocaleString('es-BO')+'</td></tr>'
     +'</table>'
     +'<button onclick="toggleIncidPopup(\'' + safeNombre + '\')" style="'+btnStyle+'padding:8px;border-radius:6px;font-family:Rajdhani,sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;width:100%;transition:all .2s;">'+btnText+'</button>'
+    +'<a href="https://www.google.com/maps?q='+d.lat+','+d.lng+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:7px;border-radius:6px;background:rgba(66,133,244,0.12);border:1px solid rgba(66,133,244,0.4);color:#4285f4;font-size:12px;font-weight:600;text-decoration:none;font-family:Inter,sans-serif;">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="#4285f4"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>'
+    +'Ver en Google Maps</a>'
     +'</div>';
 }
 
@@ -307,6 +358,10 @@ function abrirDetalle(obj) {
   btn.textContent=obj.incidencia?'✓ INCIDENCIA ACTIVA':'⚠ INCIDENCIA';
   btn.className='bincid'+(obj.incidencia?' on':'');
   document.getElementById('det').classList.add('open');
+  // Google Maps link en sidebar
+  var mapsUrl = 'https://www.google.com/maps?q='+d.lat+','+d.lng;
+  var existingLink = document.getElementById('detMapsLink');
+  if(existingLink) existingLink.href = mapsUrl;
 }
 
 window.abrirPorNombre = function(nombre) {
