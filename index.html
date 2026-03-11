@@ -297,6 +297,17 @@ var DIST_COLORS = {
   '11':'#023e8a','12':'#7b2d8b','13':'#118ab2','14':'#06d6a0','15':'#ffd166'
 };
 
+// ── FIREBASE INIT GLOBAL (antes de onload) ──
+var incidRef;
+try {
+  var firebaseApp = firebase.initializeApp({
+    databaseURL: "https://brigadaslegalesvos-default-rtdb.firebaseio.com"
+  });
+  incidRef = firebase.database().ref('incidencias_2026');
+} catch(e) {
+  console.warn('Firebase init error:', e);
+}
+
 window.onload = function() {
 try {
 
@@ -464,14 +475,10 @@ document.getElementById('btnI').addEventListener('click', function(){
   if(activo.marker.isPopupOpen()) mostrarPopup(activo);
 });
 
-// ── FIREBASE REALTIME SYNC ──
-var firebaseApp = firebase.initializeApp({
-  databaseURL: "https://brigadaslegalesvos-default-rtdb.firebaseio.com"
-});
-var db = firebase.database();
-var incidRef = db.ref('incidencias_2026');
+// Firebase ya inicializado globalmente
 
 function saveIncidencias() {
+  if(!incidRef){ console.warn('Firebase no disponible'); return; }
   try {
     var data = {};
     incidencias.forEach(function(o){
@@ -483,6 +490,7 @@ function saveIncidencias() {
 }
 
 function loadIncidencias() {
+  if(!incidRef){ console.warn('Firebase no disponible'); return; }
   // Listen in real time - updates on any device instantly
   incidRef.on('value', function(snapshot) {
     try {
