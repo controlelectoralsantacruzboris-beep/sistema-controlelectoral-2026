@@ -96,46 +96,66 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {
-  #wrap { flex-direction: column; }
-  #map  { width:100vw; height:55vh; min-width:unset; }
-  #topbar { left:0; right:0; top:8px; }
-  .sbox { width:260px; font-size:12px; }
+  html,body { overflow:hidden; }
+  #wrap { flex-direction:column; position:relative; }
+  #map  { width:100vw; height:100vh; min-width:unset; position:absolute; top:0; left:0; z-index:1; }
+  #topbar { left:0; right:0; top:8px; z-index:1000; }
+  .sbox { width:240px; font-size:12px; padding:8px 14px 8px 34px; }
 
+  /* Bottom sheet */
   #sidebar {
-    width:100vw; min-width:unset; height:45vh;
-    border-left:none; border-top:2px solid var(--brd);
-    flex-direction:column;
+    position:fixed; bottom:0; left:0; right:0;
+    width:100vw; min-width:unset;
+    height:52px;  /* collapsed = just tabs visible */
+    max-height:65vh;
+    background:var(--panel);
+    border-left:none;
+    border-top:2px solid var(--brd);
+    border-radius:16px 16px 0 0;
+    z-index:500;
+    transition:height 0.3s cubic-bezier(.4,0,.2,1);
+    overflow:hidden;
+    box-shadow:0 -4px 24px rgba(0,0,0,.5);
   }
-  .shead { padding:8px 14px; }
-  .slogo { font-size:16px; }
-  .ssub  { display:none; }
+  #sidebar.expanded { height:65vh; }
 
-  .stats { grid-template-columns:repeat(4,1fr); gap:5px; padding:6px 8px; }
-  .sc    { padding:6px 8px; }
-  .sv    { font-size:16px; }
-  .sl    { font-size:9px; }
+  /* Drag handle */
+  #sidebar::before {
+    content:'';
+    display:block;
+    width:40px; height:4px;
+    background:#444; border-radius:2px;
+    margin:8px auto 0;
+    cursor:pointer;
+    flex-shrink:0;
+  }
 
-  .legend { padding:4px 10px; gap:10px; }
-  .li     { font-size:10px; }
+  .shead { display:none; }
 
+  .stats { grid-template-columns:repeat(4,1fr); gap:4px; padding:5px 8px; border-bottom:1px solid var(--brd); }
+  .sc    { padding:5px 6px; }
+  .sv    { font-size:15px; }
+  .sl    { font-size:8px; }
+  .legend{ padding:4px 10px; gap:8px; }
+  .li    { font-size:10px; }
+
+  .tabs { position:sticky; top:0; z-index:10; background:var(--panel); }
   .tabs .tab { font-size:11px; padding:7px 4px; }
 
   .lscroll { padding:5px; }
   .ri      { padding:7px 8px; }
   .rname   { font-size:11px; }
 
-  #det { padding:10px; gap:6px; }
-  .dtn { font-size:15px; }
-  .dtg { grid-template-columns:repeat(4,1fr); gap:4px; }
+  #det { padding:10px; gap:5px; }
+  .dtn { font-size:14px; }
+  .dtg { grid-template-columns:repeat(2,1fr); gap:4px; }
   .dtc { padding:5px 7px; }
   .dtv { font-size:13px; }
 
-  #leyendaDist { bottom:47vh; left:6px; padding:6px 10px; max-width:130px; font-size:10px; }
+  #leyendaDist { bottom:60px; left:6px; padding:6px 10px; max-width:120px; font-size:10px; z-index:600; }
   #leyendaDist .ld-title { font-size:11px; }
-  .ld-item { margin-bottom:2px; }
-
-  .dist-filter { padding:5px 6px; gap:3px; }
-  .dbtn { font-size:9px; padding:2px 6px; }
+  .dist-filter { padding:4px 6px; gap:3px; }
+  .dbtn { font-size:9px; padding:2px 5px; }
 }
 </style>
 </head>
@@ -291,6 +311,7 @@ document.getElementById('stR').textContent = objetos.length;
 document.getElementById('stH').textContent = totalH>=1000 ? Math.round(totalH/1000)+'K' : totalH;
 document.getElementById('stM').textContent = totalM;
 renderListaR(objetos);
+    setTimeout(loadIncidencias, 100);
 
 // ── POPUP SOBRE EL MAPA ──
 function buildPopupHTML(obj) {
@@ -384,6 +405,35 @@ document.getElementById('btnI').addEventListener('click', function(){
   if(activo.marker.isPopupOpen()) mostrarPopup(activo);
 });
 
+function saveIncidencias() {
+  try {
+    var names = incidencias.map(function(o){return o.data.nombre;});
+    localStorage.setItem('incidencias_2026', JSON.stringify(names));
+  } catch(e){}
+}
+
+function loadIncidencias() {
+  try {
+    var saved = localStorage.getItem('incidencias_2026');
+    if(!saved) return;
+    var names = JSON.parse(saved);
+    names.forEach(function(nombre){
+      for(var x=0;x<objetos.length;x++){
+        if(objetos[x].data.nombre===nombre && !objetos[x].incidencia){
+          objetos[x].incidencia=true;
+          objetos[x].marker.setStyle({fillColor:'#facc15',color:'#f59e0b',weight:2,fillOpacity:1});
+          incidencias.push(objetos[x]);
+        }
+      }
+    });
+    var n=incidencias.length;
+    document.getElementById('stI').textContent=n;
+    var b=document.getElementById('badgeI');
+    b.textContent=n; b.style.display=n>0?'inline':'none';
+    renderListaI(); renderListaR(objetos);
+  } catch(e){}
+}
+
 function toggleIncid(obj) {
   obj.incidencia=!obj.incidencia;
   if(obj.incidencia){
@@ -398,6 +448,7 @@ function toggleIncid(obj) {
   document.getElementById('stI').textContent=n;
   var b=document.getElementById('badgeI');
   b.textContent=n; b.style.display=n>0?'inline':'none';
+  saveIncidencias();
   renderListaI(); renderListaR(objetos);
 }
 
@@ -481,9 +532,10 @@ function renderBrigadas() {
     var b=res[j];
     var dn=b.dist.replace(/[^0-9]/g,'');
     var dc=DIST_COLORS[dn]||'#f0b429';
-    html+='<div class="brig" style="border-left-color:'+dc+'">'
-      +'<div class="bn">'+b.nombre+'</div>'
-      +'<div class="bm"><span>📍 '+b.dist+'</span><span>📱 '+b.wsp+'</span></div></div>';
+    var wspNum = b.wsp.replace(/[^0-9]/g,'');
+    var wspLink = wspNum ? '<a href="https://wa.me/591'+wspNum+'" target="_blank" style="color:#25d366;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px">'      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L0 24l6.335-1.508A11.933 11.933 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.787 9.787 0 01-5.034-1.394l-.36-.214-3.762.896.952-3.656-.235-.374A9.786 9.786 0 012.182 12c0-5.415 4.403-9.818 9.818-9.818 5.414 0 9.818 4.403 9.818 9.818 0 5.414-4.404 9.818-9.818 9.818z"/></svg>'      +'WhatsApp</a>' : '<span style="color:#7d8590">Sin número</span>';
+    var callLink = wspNum ? '<a href="tel:+591'+wspNum+'" style="color:#4285f4;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px">'      +'<svg width="12" height="12" viewBox="0 0 24 24" fill="#4285f4"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>'      +'Llamar</a>' : '';
+    html+='<div class="brig" style="border-left-color:'+dc+'">'      +'<div class="bn">'+b.nombre+'</div>'      +'<div class="bm"><span>📍 '+b.dist+'</span></div>'      +'<div style="display:flex;gap:10px;margin-top:5px;">'+wspLink+(callLink?'<span style="color:#30363d">|</span>'+callLink:'')+'</div>'      +'</div>';
   }
   document.getElementById('listaB').innerHTML=html||'<div style="color:#7d8590;font-size:12px;padding:16px;text-align:center">Sin resultados</div>';
 }
@@ -552,8 +604,23 @@ function activarTab(t){
   document.querySelectorAll('.tcont').forEach(function(el){el.classList.toggle('active',el.id==='tab-'+t);});
 }
 document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click',function(){activarTab(this.dataset.tab);});
+  t.addEventListener('click',function(){
+    activarTab(this.dataset.tab);
+    // expand on mobile
+    var sb=document.getElementById('sidebar');
+    if(sb) sb.classList.add('expanded');
+  });
 });
+
+// Toggle sidebar on handle tap (mobile)
+var sidebar=document.getElementById('sidebar');
+if(sidebar){
+  sidebar.addEventListener('click',function(e){
+    if(e.target===sidebar || e.target.classList.contains('tabs') || e.clientY < sidebar.getBoundingClientRect().top + 20){
+      sidebar.classList.toggle('expanded');
+    }
+  });
+}
 
 } catch(err){ alert('ERROR: '+err.message+'\n'+err.stack); }
 }; // end window.onload
