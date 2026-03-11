@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Mapa Electoral 2026</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -96,66 +97,121 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:
 
 /* ── MOBILE ── */
 @media (max-width: 768px) {
-  html,body { overflow:hidden; }
-  #wrap { flex-direction:column; position:relative; }
-  #map  { width:100vw; height:100vh; min-width:unset; position:absolute; top:0; left:0; z-index:1; }
-  #topbar { left:0; right:0; top:8px; z-index:1000; }
-  .sbox { width:240px; font-size:12px; padding:8px 14px 8px 34px; }
+  html, body { overflow: hidden; width: 100%; height: 100%; }
 
-  /* Bottom sheet */
+  #wrap {
+    flex-direction: column;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  /* Mapa ocupa toda la pantalla de fondo */
+  #map {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+  }
+
+  /* Buscadores arriba */
+  #topbar {
+    position: fixed;
+    top: 10px; left: 0; right: 0;
+    z-index: 1000;
+    pointer-events: none;
+    gap: 6px;
+  }
+  .swrap { pointer-events: all; }
+  .sbox { width: 230px; font-size: 12px; padding: 8px 14px 8px 32px; }
+
+  /* Leyenda distritos */
+  #leyendaDist {
+    bottom: 130px;
+    left: 6px;
+    z-index: 600;
+    font-size: 10px;
+    max-width: 120px;
+    padding: 6px 8px;
+  }
+  #leyendaDist .ld-title { font-size: 11px; margin-bottom: 4px; }
+  .ld-item { margin-bottom: 2px; }
+
+  /* ── BOTTOM SHEET ── */
   #sidebar {
-    position:fixed; bottom:0; left:0; right:0;
-    width:100vw; min-width:unset;
-    height:52px;  /* collapsed = just tabs visible */
-    max-height:65vh;
-    background:var(--panel);
-    border-left:none;
-    border-top:2px solid var(--brd);
-    border-radius:16px 16px 0 0;
-    z-index:500;
-    transition:height 0.3s cubic-bezier(.4,0,.2,1);
-    overflow:hidden;
-    box-shadow:0 -4px 24px rgba(0,0,0,.5);
-  }
-  #sidebar.expanded { height:65vh; }
-
-  /* Drag handle */
-  #sidebar::before {
-    content:'';
-    display:block;
-    width:40px; height:4px;
-    background:#444; border-radius:2px;
-    margin:8px auto 0;
-    cursor:pointer;
-    flex-shrink:0;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100vw !important;
+    min-width: unset !important;
+    height: 56px;
+    max-height: 70vh;
+    border-left: none;
+    border-top: 2px solid var(--brd);
+    border-radius: 16px 16px 0 0;
+    background: var(--panel);
+    z-index: 700;
+    transition: height 0.3s ease;
+    overflow: hidden;
+    box-shadow: 0 -6px 30px rgba(0,0,0,.6);
+    display: flex !important;
+    flex-direction: column;
   }
 
-  .shead { display:none; }
+  #sidebar.expanded { height: 70vh; }
 
-  .stats { grid-template-columns:repeat(4,1fr); gap:4px; padding:5px 8px; border-bottom:1px solid var(--brd); }
-  .sc    { padding:5px 6px; }
-  .sv    { font-size:15px; }
-  .sl    { font-size:8px; }
-  .legend{ padding:4px 10px; gap:8px; }
-  .li    { font-size:10px; }
+  /* Handle de arrastre */
+  #handle {
+    width: 36px; height: 4px;
+    background: #555;
+    border-radius: 2px;
+    margin: 8px auto 0;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
 
-  .tabs { position:sticky; top:0; z-index:10; background:var(--panel); }
-  .tabs .tab { font-size:11px; padding:7px 4px; }
+  .shead { display: none !important; }
 
-  .lscroll { padding:5px; }
-  .ri      { padding:7px 8px; }
-  .rname   { font-size:11px; }
+  .stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 4px;
+    padding: 5px 8px;
+    flex-shrink: 0;
+  }
+  .sc { padding: 5px 6px; }
+  .sv { font-size: 15px; }
+  .sl { font-size: 8px; }
 
-  #det { padding:10px; gap:5px; }
-  .dtn { font-size:14px; }
-  .dtg { grid-template-columns:repeat(2,1fr); gap:4px; }
-  .dtc { padding:5px 7px; }
-  .dtv { font-size:13px; }
+  .legend { padding: 4px 10px; gap: 8px; flex-shrink: 0; }
+  .li { font-size: 10px; }
 
-  #leyendaDist { bottom:60px; left:6px; padding:6px 10px; max-width:120px; font-size:10px; z-index:600; }
-  #leyendaDist .ld-title { font-size:11px; }
-  .dist-filter { padding:4px 6px; gap:3px; }
-  .dbtn { font-size:9px; padding:2px 5px; }
+  .tabs {
+    flex-shrink: 0;
+    background: var(--panel);
+  }
+  .tabs .tab { font-size: 11px; padding: 7px 4px; }
+
+  .tcont { min-height: 0; flex: 1; }
+  .lscroll { padding: 5px; }
+
+  .ri { padding: 7px 8px; margin-bottom: 4px; }
+  .rname { font-size: 11px; }
+  .rmeta { font-size: 9px; }
+
+  #det { padding: 8px 10px; gap: 5px; }
+  .dtn { font-size: 14px; }
+  .dtg { grid-template-columns: repeat(2, 1fr); gap: 4px; }
+  .dtc { padding: 5px 7px; }
+  .dtv { font-size: 13px; }
+
+  .dist-filter { padding: 4px 6px; gap: 3px; }
+  .dbtn { font-size: 9px; padding: 2px 5px; }
+  #cntB { font-size: 10px; padding: 4px 8px; }
+
+  .brig { padding: 8px 10px; margin-bottom: 5px; }
+  .bn { font-size: 12px; }
+  .bm { font-size: 10px; }
 }
 </style>
 </head>
@@ -169,6 +225,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:
 <div id="wrap">
   <div id="map"></div>
   <div id="sidebar">
+    <div id="handle"></div>
     <div class="shead">
       <div class="slogo">🗳 MAPA ELECTORAL 2026</div>
       <div class="ssub">SANTA CRUZ DE LA SIERRA — TSE</div>
@@ -535,7 +592,14 @@ function renderBrigadas() {
     var wspNum = b.wsp.replace(/[^0-9]/g,'');
     var wspLink = wspNum ? '<a href="https://wa.me/591'+wspNum+'" target="_blank" style="color:#25d366;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px">'      +'<svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L0 24l6.335-1.508A11.933 11.933 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.787 9.787 0 01-5.034-1.394l-.36-.214-3.762.896.952-3.656-.235-.374A9.786 9.786 0 012.182 12c0-5.415 4.403-9.818 9.818-9.818 5.414 0 9.818 4.403 9.818 9.818 0 5.414-4.404 9.818-9.818 9.818z"/></svg>'      +'WhatsApp</a>' : '<span style="color:#7d8590">Sin número</span>';
     var callLink = wspNum ? '<a href="tel:+591'+wspNum+'" style="color:#4285f4;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:3px">'      +'<svg width="12" height="12" viewBox="0 0 24 24" fill="#4285f4"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>'      +'Llamar</a>' : '';
-    html+='<div class="brig" style="border-left-color:'+dc+'">'      +'<div class="bn">'+b.nombre+'</div>'      +'<div class="bm"><span>📍 '+b.dist+'</span></div>'      +'<div style="display:flex;gap:10px;margin-top:5px;">'+wspLink+(callLink?'<span style="color:#30363d">|</span>'+callLink:'')+'</div>'      +'</div>';
+    html+='<div class="brig" style="border-left-color:'+dc+'">'
+      +'<div class="bn">'+b.nombre+'</div>'
+      +'<div class="bm"><span>📍 '+b.dist+'</span><span>📱 '+b.wsp+'</span></div>'
+      +'<div style="display:flex;gap:6px;margin-top:7px;">'
+      +(wspNum?'<a href="https://wa.me/591'+wspNum+'" target="_blank" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 6px;background:rgba(37,211,102,.13);border:1px solid rgba(37,211,102,.4);border-radius:7px;color:#25d366;text-decoration:none;font-size:12px;font-weight:700;min-height:38px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.845L0 24l6.335-1.508A11.933 11.933 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.787 9.787 0 01-5.034-1.394l-.36-.214-3.762.896.952-3.656-.235-.374A9.786 9.786 0 012.182 12c0-5.415 4.403-9.818 9.818-9.818 5.414 0 9.818 4.403 9.818 9.818 0 5.414-4.404 9.818-9.818 9.818z"/></svg>WhatsApp</a>':'')
+      +(wspNum?'<a href="tel:+591'+wspNum+'" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px 6px;background:rgba(66,133,244,.13);border:1px solid rgba(66,133,244,.4);border-radius:7px;color:#4285f4;text-decoration:none;font-size:12px;font-weight:700;min-height:38px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="#4285f4"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>Llamar</a>':'')
+      +'</div>'
+      +'</div>';
   }
   document.getElementById('listaB').innerHTML=html||'<div style="color:#7d8590;font-size:12px;padding:16px;text-align:center">Sin resultados</div>';
 }
@@ -604,23 +668,20 @@ function activarTab(t){
   document.querySelectorAll('.tcont').forEach(function(el){el.classList.toggle('active',el.id==='tab-'+t);});
 }
 document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click',function(){
-    activarTab(this.dataset.tab);
-    // expand on mobile
-    var sb=document.getElementById('sidebar');
-    if(sb) sb.classList.add('expanded');
-  });
+  t.addEventListener('click',function(){ activarTab(this.dataset.tab); });
 });
 
 // Toggle sidebar on handle tap (mobile)
-var sidebar=document.getElementById('sidebar');
-if(sidebar){
-  sidebar.addEventListener('click',function(e){
-    if(e.target===sidebar || e.target.classList.contains('tabs') || e.clientY < sidebar.getBoundingClientRect().top + 20){
-      sidebar.classList.toggle('expanded');
-    }
+var sbEl = document.getElementById('sidebar');
+var handleEl = document.getElementById('handle');
+function toggleSidebar(){ if(sbEl) sbEl.classList.toggle('expanded'); }
+if(handleEl) handleEl.addEventListener('click', toggleSidebar);
+// Also expand when tapping tabs on mobile
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    if(window.innerWidth <= 768 && sbEl) sbEl.classList.add('expanded');
   });
-}
+});
 
 } catch(err){ alert('ERROR: '+err.message+'\n'+err.stack); }
 }; // end window.onload
